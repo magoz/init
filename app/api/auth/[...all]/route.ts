@@ -1,12 +1,12 @@
-import { Effect } from "effect"
-import { BetterAuth } from "@/lib/services/auth"
-import { AuthLayer } from "@/lib/layers"
-import { toNextJsHandler } from "better-auth/next-js"
+import { Effect } from 'effect'
+import { Auth } from '@/lib/services/auth/live-layer'
+import { AuthLayer } from '@/lib/layers'
+import { toNextJsHandler } from 'better-auth/next-js'
 
 async function getAuthHandler() {
   return await Effect.runPromise(
     Effect.gen(function* () {
-      const authService = yield* BetterAuth
+      const authService = yield* Auth
       return authService.auth
     }).pipe(Effect.provide(AuthLayer), Effect.scoped)
   )

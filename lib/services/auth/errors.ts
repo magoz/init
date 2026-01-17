@@ -1,21 +1,16 @@
 import { Data } from 'effect'
 
-export class BetterAuthApiError extends Data.TaggedError('BetterAuthApiError')<{
+export class AuthApiError extends Data.TaggedError('AuthApiError')<{
   error: unknown
 }> {}
 
-export class BetterAuthConfigError extends Data.TaggedError('BetterAuthConfigError')<{
+export class AuthConfigError extends Data.TaggedError('AuthConfigError')<{
   message: string
 }> {}
 
-export class BetterAuthSessionError extends Data.TaggedError('BetterAuthSessionError')<{
+export class AuthSessionError extends Data.TaggedError('AuthSessionError')<{
   message: string
 }> {}
 
-export class UnauthenticatedError extends Data.TaggedError('UnauthenticatedError')<{
-  message: string
-}> {}
-
-export class UnauthorizedError extends Data.TaggedError('UnauthorizedError')<{
-  message: string
-}> {}
+// Note: UnauthenticatedError and UnauthorizedError are defined in @/lib/core/errors
+// Import from there for shared auth errors

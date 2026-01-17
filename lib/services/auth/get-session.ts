@@ -1,6 +1,6 @@
 import { Effect } from 'effect'
 import { cookies } from 'next/headers'
-import { BetterAuth } from '.'
+import { Auth } from './live-layer'
 import { UnauthenticatedError, UnauthorizedError } from '@/lib/core/errors'
 
 // Basic session guard - requires authentication
@@ -8,7 +8,7 @@ export const getSession = () =>
   Effect.gen(function* () {
     yield* Effect.promise(() => cookies()) // Mark as dynamic
 
-    const authService = yield* BetterAuth
+    const authService = yield* Auth
     const session = yield* authService.getSessionFromCookies()
 
     if (!session) {
@@ -16,12 +16,12 @@ export const getSession = () =>
     }
 
     return session
-  }).pipe(Effect.withSpan('auth.session.get'))
+  }).pipe(Effect.withSpan('Auth.session.get'))
 
 // Admin guard - requires ADMIN role
 export const getAdminSession = () =>
   Effect.gen(function* () {
-    const authService = yield* BetterAuth
+    const authService = yield* Auth
     const session = yield* authService.getSessionFromCookies()
 
     if (!session) {
@@ -33,4 +33,4 @@ export const getAdminSession = () =>
     }
 
     return session
-  }).pipe(Effect.withSpan('auth.session.get-admin'))
+  }).pipe(Effect.withSpan('Auth.session.getAdmin'))

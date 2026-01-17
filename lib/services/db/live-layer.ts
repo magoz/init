@@ -4,14 +4,14 @@ import { NodeContext } from '@effect/platform-node'
 import { drizzle, type EffectPgDatabase } from 'drizzle-orm/effect-postgres'
 import * as schema from './schema'
 
-// PostgreSQL connection layer
+// PostgreSQL connection layer (internal)
 const PgLive = PgClient.layerConfig({
   url: Config.redacted('DATABASE_URL'),
   ssl: Config.succeed(true)
 })
 
-// Drizzle service with full schema typing using native Effect implementation
-export class DbLive extends Effect.Service<DbLive>()('@app/DbLive', {
+// Database service definition
+export class Db extends Effect.Service<Db>()('@app/Db', {
   dependencies: [PgLive],
   effect: Effect.gen(function* () {
     const client = yield* PgClient.PgClient
@@ -20,7 +20,7 @@ export class DbLive extends Effect.Service<DbLive>()('@app/DbLive', {
 }) {}
 
 // Type export for convenience
-export type Db = EffectPgDatabase<typeof schema>
+export type Database = EffectPgDatabase<typeof schema>
 
-// Combined layer for external use
-export const DbLayer = Layer.merge(DbLive.Default, PgLive).pipe(Layer.provide(NodeContext.layer))
+// Layer export for composition
+export const DbLive = Layer.merge(Db.Default, PgLive).pipe(Layer.provide(NodeContext.layer))
