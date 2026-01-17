@@ -24,6 +24,12 @@ export const AuthDbLive = Layer.effect(
 const NEXT_PUBLIC_PROJECT_URL = process.env.NEXT_PUBLIC_PROJECT_URL
 if (!NEXT_PUBLIC_PROJECT_URL) throw new Error('NEXT_PUBLIC_PROJECT_URL env variable not found')
 
+const APP_NAME = process.env.APP_NAME
+if (!APP_NAME) throw new Error('APP_NAME env variable not found')
+
+const EMAIL_SENDER = process.env.EMAIL_SENDER
+if (!EMAIL_SENDER) throw new Error('EMAIL_SENDER env variable not found')
+
 export class BetterAuth extends Effect.Service<BetterAuth>()('@app/BetterAuth', {
   accessors: true,
   effect: Effect.gen(function* () {
@@ -70,9 +76,9 @@ export class BetterAuth extends Effect.Service<BetterAuth>()('@app/BetterAuth', 
 
             await emailService
               .sendEmail({
-                from: 'Impressions <login@impressionsbox.com>',
+                from: `${APP_NAME} <${EMAIL_SENDER}>`,
                 to: email,
-                subject: 'Impressions - Login code',
+                subject: `${APP_NAME} - Login code`,
                 html: `Your login code is: <strong>${otp}</strong>`
               })
               .pipe(
