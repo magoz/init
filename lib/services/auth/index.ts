@@ -70,7 +70,7 @@ export class BetterAuth extends Effect.Service<BetterAuth>()('@app/BetterAuth', 
       },
       plugins: [
         emailOTP({
-          disableSignUp: true,
+          // disableSignUp: true,
           async sendVerificationOTP({ email, otp, type }) {
             if (type !== 'sign-in') return
 
