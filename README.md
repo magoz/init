@@ -4,22 +4,23 @@ A Next.js project starter with Effect-TS, designed to be cloned as the foundatio
 
 ## Stack
 
-| Category       | Technology                                      |
-| -------------- | ----------------------------------------------- |
-| Framework      | Next.js 15 (App Router, Turbopack)              |
-| Language       | TypeScript 5                                    |
-| Functional     | Effect-TS                                       |
-| Database       | PostgreSQL via Drizzle ORM + @effect/sql        |
-| Auth           | better-auth (Email OTP, passwordless)           |
-| Email          | Resend                                          |
-| Styling        | Tailwind CSS 4                                  |
-| Telemetry      | Sentry + OpenTelemetry                          |
-| Analytics      | PostHog                                         |
-| Testing        | Vitest                                          |
+| Category   | Technology                               |
+| ---------- | ---------------------------------------- |
+| Framework  | Next.js 15 (App Router, Turbopack)       |
+| Language   | TypeScript 5                             |
+| Functional | Effect-TS                                |
+| Database   | PostgreSQL via Drizzle ORM + @effect/sql |
+| Auth       | better-auth (Email OTP, passwordless)    |
+| Email      | Resend                                   |
+| Styling    | Tailwind CSS 4                           |
+| Telemetry  | Sentry + OpenTelemetry                   |
+| Analytics  | PostHog                                  |
+| Testing    | Vitest                                   |
 
 ## Getting Started
 
 1. **Clone and rename:**
+
    ```bash
    git clone <repo> my-project
    cd my-project
@@ -27,17 +28,20 @@ A Next.js project starter with Effect-TS, designed to be cloned as the foundatio
    ```
 
 2. **Install dependencies:**
+
    ```bash
    pnpm install
    ```
 
 3. **Set up environment:**
+
    ```bash
    cp .env.example .env.local
    # Edit .env.local with your values
    ```
 
 4. **Push database schema:**
+
    ```bash
    pnpm db:push
    ```
@@ -73,28 +77,28 @@ app/
 
 ## Scripts
 
-| Command           | Description                    |
-| ----------------- | ------------------------------ |
-| `pnpm dev`        | Start dev server (Turbopack)   |
-| `pnpm build`      | Production build               |
-| `pnpm start`      | Start production server        |
-| `pnpm tsc`        | Type check                     |
-| `pnpm lint`       | Lint code                      |
-| `pnpm test`       | Run tests (watch mode)         |
-| `pnpm test:run`   | Run tests (single run)         |
-| `pnpm db:generate`| Generate Drizzle migrations    |
-| `pnpm db:push`    | Push schema to database        |
-| `pnpm db:studio`  | Open Drizzle Studio            |
+| Command            | Description                  |
+| ------------------ | ---------------------------- |
+| `pnpm dev`         | Start dev server (Turbopack) |
+| `pnpm build`       | Production build             |
+| `pnpm start`       | Start production server      |
+| `pnpm tsc`         | Type check                   |
+| `pnpm lint`        | Lint code                    |
+| `pnpm test`        | Run tests (watch mode)       |
+| `pnpm test:run`    | Run tests (single run)       |
+| `pnpm db:generate` | Generate Drizzle migrations  |
+| `pnpm db:push`     | Push schema to database      |
+| `pnpm db:studio`   | Open Drizzle Studio          |
 
 ## Environment Variables
 
-| Variable                 | Description                          |
-| ------------------------ | ------------------------------------ |
-| `DATABASE_URL`           | PostgreSQL connection string         |
-| `NEXT_PUBLIC_PROJECT_URL`| Production URL                       |
-| `RESEND_API_KEY`         | Resend API key for emails            |
-| `SENTRY_DSN`             | Sentry DSN for error tracking        |
-| `NEXT_PUBLIC_POSTHOG_KEY`| PostHog project key                  |
+| Variable                  | Description                   |
+| ------------------------- | ----------------------------- |
+| `DATABASE_URL`            | PostgreSQL connection string  |
+| `NEXT_PUBLIC_PROJECT_URL` | Production URL                |
+| `RESEND_API_KEY`          | Resend API key for emails     |
+| `SENTRY_DSN`              | Sentry DSN for error tracking |
+| `NEXT_PUBLIC_POSTHOG_KEY` | PostHog project key           |
 
 ## Patterns
 
@@ -152,11 +156,11 @@ export const getSomething = (id: string) =>
   Effect.gen(function* () {
     const { user } = yield* getSession()
     const db = yield* DbLive
-    
+
     const result = yield* Effect.tryPromise(() =>
       db.select().from(schema.something).where(eq(schema.something.id, id))
     )
-    
+
     return result
   }).pipe(Effect.withSpan('example.get-something'))
 ```

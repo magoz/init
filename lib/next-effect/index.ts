@@ -1,8 +1,8 @@
-import { Data, Effect, Either } from "effect"
-import { redirect } from "next/navigation"
+import { Data, Effect, Either } from 'effect'
+import { redirect } from 'next/navigation'
 
 // Tagged error for redirect intents
-class RedirectError extends Data.TaggedError("RedirectError")<{
+class RedirectError extends Data.TaggedError('RedirectError')<{
   path: string
 }> {}
 
@@ -16,10 +16,8 @@ const redirectEffect = (path: string) => Effect.fail(new RedirectError({ path })
  */
 const runPromise = async <A, E>(effect: Effect.Effect<A, E>): Promise<A> => {
   const result = await Effect.runPromise(
-    Effect.catchAll(Effect.map(effect, Either.right), (e) =>
-      e instanceof RedirectError
-        ? Effect.succeed(Either.left(e))
-        : Effect.fail(e)
+    Effect.catchAll(Effect.map(effect, Either.right), e =>
+      e instanceof RedirectError ? Effect.succeed(Either.left(e)) : Effect.fail(e)
     )
   )
   if (Either.isLeft(result)) {
@@ -30,5 +28,5 @@ const runPromise = async <A, E>(effect: Effect.Effect<A, E>): Promise<A> => {
 
 export const NextEffect = {
   redirect: redirectEffect,
-  runPromise,
+  runPromise
 }

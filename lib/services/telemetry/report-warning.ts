@@ -1,5 +1,5 @@
-import { Effect } from "effect"
-import * as Sentry from "@sentry/nextjs"
+import { Effect } from 'effect'
+import * as Sentry from '@sentry/nextjs'
 
 export const reportWarning = <W extends { _tag: string; message: string }>(
   warning: W,
@@ -12,15 +12,15 @@ export const reportWarning = <W extends { _tag: string; message: string }>(
     // Log to console
     yield* Effect.logWarning(warningMessage, {
       warning_type: warningTag,
-      ...context,
+      ...context
     })
 
     // Send to Sentry at warning level
     yield* Effect.sync(() =>
       Sentry.captureMessage(warningMessage, {
-        level: "warning",
+        level: 'warning',
         tags: { warning_type: warningTag },
-        extra: { ...context, warningDetails: warning },
+        extra: { ...context, warningDetails: warning }
       })
     )
   })

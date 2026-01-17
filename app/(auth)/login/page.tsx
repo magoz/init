@@ -22,9 +22,7 @@ async function Content() {
       Effect.matchEffect({
         onFailure: error =>
           Match.value(error._tag).pipe(
-            Match.when('UnauthenticatedError', () =>
-              Effect.succeed(<LoginForm />)
-            ),
+            Match.when('UnauthenticatedError', () => Effect.succeed(<LoginForm />)),
             Match.orElse(() =>
               Effect.succeed(
                 <main className="p-8">

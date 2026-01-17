@@ -1,5 +1,5 @@
-import { Effect } from "effect"
-import * as Sentry from "@sentry/nextjs"
+import { Effect } from 'effect'
+import * as Sentry from '@sentry/nextjs'
 
 export const reportError = <E extends { _tag: string; message: string }>(
   error: E,
@@ -12,19 +12,19 @@ export const reportError = <E extends { _tag: string; message: string }>(
     // Log to console
     yield* Effect.logError(errorMessage, {
       error_type: errorTag,
-      ...context,
+      ...context
     })
 
     // Capture in Sentry
     yield* Effect.sync(() =>
       Sentry.captureException(error, {
         tags: {
-          error_type: errorTag,
+          error_type: errorTag
         },
         extra: {
           ...context,
-          errorDetails: error,
-        },
+          errorDetails: error
+        }
       })
     )
   })
