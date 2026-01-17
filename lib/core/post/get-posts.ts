@@ -9,9 +9,8 @@ export const getPosts = () =>
     const { user } = yield* getSession()
     const db = yield* DbLive
 
-    const posts = yield* Effect.tryPromise(() =>
-      db.select().from(schema.post).where(eq(schema.post.userId, user.id))
-    )
+    // Native Effect: queries are directly yieldable
+    const posts = yield* db.select().from(schema.post).where(eq(schema.post.userId, user.id))
 
     return posts
   }).pipe(Effect.withSpan('post.get-posts'))

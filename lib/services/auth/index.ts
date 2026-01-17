@@ -7,7 +7,6 @@ import { Context, Layer, Config } from 'effect'
 import { emailOTP } from 'better-auth/plugins'
 import { Email } from '../email'
 import { BetterAuthApiError } from './errors'
-import { neon } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-http'
 
 // Create a separate Drizzle database tag for better-auth
@@ -18,8 +17,7 @@ export const AuthDbLive = Layer.effect(
   AuthDb,
   Effect.gen(function* () {
     const url = yield* Config.string('DATABASE_URL')
-    const sql = neon(url)
-    return drizzle(sql, { schema })
+    return drizzle({ connection: url, schema })
   })
 )
 

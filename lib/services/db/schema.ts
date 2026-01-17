@@ -1,5 +1,5 @@
 import { pgTable, text, timestamp, boolean } from 'drizzle-orm/pg-core'
-import { relations } from 'drizzle-orm'
+import { defineRelations } from 'drizzle-orm'
 import { createId } from '@paralleldrive/cuid2'
 
 ////////////////////////////////////////////////////////////////////////
@@ -28,10 +28,6 @@ export const user = pgTable('user', {
     .defaultNow()
     .$onUpdate(() => new Date())
 })
-
-export const userRelations = relations(user, ({ many }) => ({
-  posts: many(post)
-}))
 export type User = typeof user.$inferSelect
 export type InsertUser = typeof user.$inferInsert
 
@@ -55,12 +51,6 @@ export const post = pgTable('post', {
     .$onUpdate(() => new Date())
 })
 
-export const postRelations = relations(post, ({ one }) => ({
-  user: one(user, {
-    fields: [post.userId],
-    references: [user.id]
-  })
-}))
 export type Post = typeof post.$inferSelect
 export type InsertPost = typeof post.$inferInsert
 
@@ -112,3 +102,22 @@ export const verification = pgTable('verification', {
     .defaultNow()
     .$onUpdate(() => new Date())
 })
+
+////////////////////////////////////////////////////////////////////////
+// RELATIONS - Drizzle v1.0 RQB v2 API
+////////////////////////////////////////////////////////////////////////
+export const relations = defineRelations({ user, post, session, account, verification }, r => ({
+  user: {
+    posts: r.many.post({
+      from: r.user.id,
+      to: r.post.userId
+    })
+  },
+  post: {
+    author: r.one.user({
+      from: r.post.userId,
+      to: r.user.id,
+      optional: false
+    })
+  }
+}))
