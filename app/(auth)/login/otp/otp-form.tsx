@@ -2,7 +2,7 @@
 
 import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from '@/components/ui/input-otp'
 import { LoaderCircleIcon, SendIcon } from 'lucide-react'
-import { useEffect, useState, useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { authClient } from '@/lib/services/auth/auth-client'
@@ -40,17 +40,12 @@ export const OtpForm = ({ email }: Props) => {
     })
   }
 
-  // Nextjs cacheComponents use React Activity, so states will be preserved across navigation. We want to clear the otp state.
-  useEffect(() => {
-    setOtp('')
-  }, [])
-
   return (
     <div className="flex flex-col items-center justify-center text-center gap-8">
       <div className="flex flex-col justify-center items-center space-y-6">
         <SendIcon className="size-12 text-muted-foreground/40" />
         <h2 className="text-2xl font-semibold">
-          If the account exists, we've sent a verification code to {email}
+          If the account exists, we&apos;ve sent a verification code to {email}
         </h2>
       </div>
 
@@ -86,8 +81,8 @@ export const OtpForm = ({ email }: Props) => {
       </InputOTP>
 
       <p className="text-muted-foreground text-sm text-center">
-        We only send login codes to registered accounts. If you have an account but haven't received
-        the code, check the spam folder.
+        We only send login codes to registered accounts. If you have an account but haven&apos;t
+        received the code, check the spam folder.
         <Link href="/login" className="block underline">
           Request a new code
         </Link>
