@@ -25,6 +25,7 @@ A Next.js project starter with Effect-TS, designed to be cloned as the foundatio
    git clone <repo> my-project
    cd my-project
    rm -rf .git && git init
+   git branch -M main
    ```
 
 2. **Install dependencies:**
@@ -42,13 +43,7 @@ A Next.js project starter with Effect-TS, designed to be cloned as the foundatio
 
    Both files are gitignored. Most variables go in `.env.local`, `.env` is for tool compatibility.
 
-4. **Push database schema:**
-
-   ```bash
-   pnpm db:push
-   ```
-
-5. **Run development server:**
+4. **Run development server:**
    ```bash
    pnpm dev
    ```
@@ -79,33 +74,40 @@ app/
 └── page.tsx                 # Home page example
 ```
 
-## Scripts
+## Database
 
-| Command               | Description                  |
-| --------------------- | ---------------------------- |
-| `pnpm dev`            | Start dev server (Turbopack) |
-| `pnpm build`          | Production build             |
-| `pnpm start`          | Start production server      |
-| `pnpm tsc`            | Type check                   |
-| `pnpm lint`           | Lint code                    |
-| `pnpm knip`           | Dead code detection          |
-| `pnpm prettier:check` | Check formatting             |
-| `pnpm prettier:fix`   | Fix formatting               |
-| `pnpm test`           | Run tests (watch mode)       |
-| `pnpm test:run`       | Run tests (single run)       |
-| `pnpm db:generate`    | Generate Drizzle migrations  |
-| `pnpm db:push`        | Push schema to database      |
-| `pnpm db:studio`      | Open Drizzle Studio          |
+Schema is defined in `lib/services/db/schema.ts`. Migrations are stored in `lib/services/db/migrations/`.
 
-## Environment Variables
+### Development
 
-| Variable                  | Description                   |
-| ------------------------- | ----------------------------- |
-| `DATABASE_URL`            | PostgreSQL connection string  |
-| `NEXT_PUBLIC_PROJECT_URL` | Production URL                |
-| `RESEND_API_KEY`          | Resend API key for emails     |
-| `SENTRY_DSN`              | Sentry DSN for error tracking |
-| `NEXT_PUBLIC_POSTHOG_KEY` | PostHog project key           |
+Use `db:push` for rapid iteration - applies schema changes directly without migration files:
+
+```bash
+pnpm db:push
+```
+
+### Production
+
+Use `db:generate` to create migration files, then apply them:
+
+```bash
+pnpm db:generate  # Creates migration files from schema changes
+pnpm db:push      # Applies migrations to database
+```
+
+### Workflow
+
+1. Edit `lib/services/db/schema.ts`
+2. Run `pnpm db:generate` to create migration
+3. Review generated migration in `lib/services/db/migrations/`
+4. Run `pnpm db:push` to apply
+5. Commit migration files
+
+### Drizzle Studio
+
+```bash
+pnpm db:studio  # Opens GUI to browse/edit data
+```
 
 ## Patterns
 
@@ -179,3 +181,4 @@ export const getSomething = (id: string) =>
 3. Remove example code (`lib/core/post/`, example routes)
 4. Add your own database schema in `lib/services/db/schema.ts`
 5. Create your services in `lib/core/`
+6. Remove unwanted services in `lib/services/`. Add more services as needed (port them to the init repo).
