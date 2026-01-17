@@ -16,6 +16,18 @@ pnpm dlx shadcn@latest add [component]
 
 Browse components: https://ui.shadcn.com/docs/components
 
+### shadcn blocks
+
+Pre-built page sections (hero, pricing, features, etc.)
+
+```bash
+pnpm dlx shadcn@latest add @shadcnblocks/[block-name]
+```
+
+Requires `SHADCNBLOCKS_API_KEY` env var for pro blocks.
+
+Browse blocks: https://shadcnblocks.com
+
 ### React Bits
 
 Animated, interactive components (text animations, backgrounds, effects)
