@@ -13,6 +13,9 @@
     "prettier:fix": "pnpm prettier . --write",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:e2e": "NODE_ENV=test playwright test",
+    "test:e2e:ui": "NODE_ENV=test playwright test --ui",
+    "test:e2e:debug": "NODE_ENV=test playwright test --debug",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
@@ -52,6 +55,7 @@
   },
   "devDependencies": {
     "@effect/language-service": "^0.67.0",
+    "@playwright/test": "^1.57.0",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^25.0.9",
     "@types/react": "19.2.8",
