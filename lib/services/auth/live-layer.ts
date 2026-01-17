@@ -4,14 +4,14 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { nextCookies } from 'better-auth/next-js'
 import * as schema from '../db/schema'
 import { emailOTP } from 'better-auth/plugins'
-import { Email } from '../email/live-layer'
+import { Email, EmailLive } from '../email/live-layer'
 import { AuthApiError, AuthConfigError } from './errors'
 import { drizzle } from 'drizzle-orm/neon-http'
 
 // Auth database service (internal) - uses Neon HTTP driver for serverless
-export class AuthDb extends Context.Tag('@app/AuthDb')<AuthDb, ReturnType<typeof drizzle>>() {}
+class AuthDb extends Context.Tag('@app/AuthDb')<AuthDb, ReturnType<typeof drizzle>>() {}
 
-export const AuthDbLive = Layer.effect(
+const AuthDbLive = Layer.effect(
   AuthDb,
   Effect.gen(function* () {
     const url = yield* Config.string('DATABASE_URL')
@@ -173,7 +173,7 @@ export class Auth extends Effect.Service<Auth>()('@app/Auth', {
       changePassword
     } as const
   }),
-  dependencies: [AuthConfigLive]
+  dependencies: [AuthConfigLive, AuthDbLive, EmailLive]
 }) {}
 
 // Layer export for composition
