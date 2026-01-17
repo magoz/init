@@ -1,7 +1,6 @@
 import { Layer } from 'effect'
 import { Db } from './services/db/live-layer'
 import { Auth } from './services/auth/live-layer'
-import { Email } from './services/email/live-layer'
 import { Telegram } from './services/telegram/live-layer'
 import { Activity } from './services/activity/live-layer'
 import { TelemetryLayer } from './services/telemetry/live-layer'
