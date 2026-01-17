@@ -1,42 +1,46 @@
-import { redirect } from 'next/navigation'
-import { LoginForm } from './login-form'
 import { Suspense } from 'react'
-import { AuthLayer } from '@/lib/layers'
-import { getSessionEffect } from '@/lib/services/auth/get-session-effect'
-import { Effect, Match } from 'effect'
+import { Effect, Layer, Match } from 'effect'
 import { cookies } from 'next/headers'
+import { NextEffect } from '@/lib/next-effect'
+import { AppLayer } from '@/lib/layers'
+import { getSession } from '@/lib/services/auth/get-session'
+import { LoginForm } from './login-form'
 
 async function Content() {
-  // Make nextjs happy
   await cookies()
 
-  const result = await Effect.runPromise(
+  return await NextEffect.runPromise(
     Effect.gen(function* () {
-      yield* getSessionEffect()
-      return { _tag: 'Authenticated' as const }
+      // If session exists, user is already authenticated
+      yield* getSession()
+
+      // Redirect to home if already logged in
+      return yield* NextEffect.redirect('/')
     }).pipe(
-      Effect.provide(AuthLayer),
+      Effect.provide(Layer.mergeAll(AppLayer)),
       Effect.scoped,
-      Effect.catchTags({
-        UnauthenticatedError: () => Effect.succeed({ _tag: 'Unauthenticated' as const })
-      }),
-      Effect.catchAll(error => {
-        return Effect.succeed({ _tag: 'UnknownError' as const, error })
+      Effect.matchEffect({
+        onFailure: error =>
+          Match.value(error._tag).pipe(
+            Match.when('UnauthenticatedError', () =>
+              Effect.succeed(<LoginForm />)
+            ),
+            Match.orElse(() =>
+              Effect.succeed(
+                <main className="p-8">
+                  <p>Something went wrong.</p>
+                  <p className="text-red-500">Error: {error.message}</p>
+                </main>
+              )
+            )
+          ),
+        onSuccess: Effect.succeed
       })
     )
   )
-
-  return Match.value(result).pipe(
-    Match.tag('Authenticated', () => redirect('/')),
-    Match.tag('UnknownError', ({ error }) => {
-      throw error
-    }),
-    Match.tag('Unauthenticated', () => <LoginForm />),
-    Match.exhaustive
-  )
 }
 
-export default function Page() {
+export default async function Page() {
   return (
     <Suspense fallback={null}>
       <Content />
