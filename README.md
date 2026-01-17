@@ -6,7 +6,7 @@ A Next.js project starter with Effect-TS, designed to be cloned as the foundatio
 
 | Category   | Technology                               |
 | ---------- | ---------------------------------------- |
-| Framework  | Next.js 15 (App Router, Turbopack)       |
+| Framework  | Next.js 16 (App Router, Turbopack)       |
 | Language   | TypeScript 5                             |
 | Functional | Effect-TS                                |
 | Database   | PostgreSQL via Drizzle ORM + @effect/sql |
@@ -55,13 +55,15 @@ A Next.js project starter with Effect-TS, designed to be cloned as the foundatio
 
 ```
 lib/
-├── core/                    # Core business logic
-│   ├── errors/              # Shared error types
+├── core/                    # Core business logic (each subfolder has own errors)
 │   └── post/                # Example: getPosts()
 ├── services/                # Infrastructure services
 │   ├── auth/                # Authentication (better-auth)
 │   ├── db/                  # Database (Drizzle + Effect SQL)
 │   ├── email/               # Email (Resend)
+│   ├── s3/                  # AWS S3 file storage
+│   ├── telegram/            # Telegram notifications
+│   ├── activity/            # Activity logging
 │   └── telemetry/           # Error reporting & tracing
 ├── layers.ts                # Effect layer composition
 └── next-effect/             # Next.js + Effect utilities
@@ -77,18 +79,21 @@ app/
 
 ## Scripts
 
-| Command            | Description                  |
-| ------------------ | ---------------------------- |
-| `pnpm dev`         | Start dev server (Turbopack) |
-| `pnpm build`       | Production build             |
-| `pnpm start`       | Start production server      |
-| `pnpm tsc`         | Type check                   |
-| `pnpm lint`        | Lint code                    |
-| `pnpm test`        | Run tests (watch mode)       |
-| `pnpm test:run`    | Run tests (single run)       |
-| `pnpm db:generate` | Generate Drizzle migrations  |
-| `pnpm db:push`     | Push schema to database      |
-| `pnpm db:studio`   | Open Drizzle Studio          |
+| Command               | Description                  |
+| --------------------- | ---------------------------- |
+| `pnpm dev`            | Start dev server (Turbopack) |
+| `pnpm build`          | Production build             |
+| `pnpm start`          | Start production server      |
+| `pnpm tsc`            | Type check                   |
+| `pnpm lint`           | Lint code                    |
+| `pnpm knip`           | Dead code detection          |
+| `pnpm prettier:check` | Check formatting             |
+| `pnpm prettier:fix`   | Fix formatting               |
+| `pnpm test`           | Run tests (watch mode)       |
+| `pnpm test:run`       | Run tests (single run)       |
+| `pnpm db:generate`    | Generate Drizzle migrations  |
+| `pnpm db:push`        | Push schema to database      |
+| `pnpm db:studio`      | Open Drizzle Studio          |
 
 ## Environment Variables
 

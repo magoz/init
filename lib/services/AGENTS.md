@@ -134,11 +134,7 @@ export class ServiceConfigError extends Data.TaggedError('ServiceConfigError')<{
 - Prefix with service name: `AuthApiError`, `EmailConfigError`
 - Common suffixes: `ApiError`, `ConfigError`, `ValidationError`
 
-**Shared errors** (authentication, authorization, not found) belong in `lib/core/errors/`:
-
-```typescript
-import { UnauthenticatedError, UnauthorizedError } from '@/lib/core/errors'
-```
+**Domain errors** belong in each `lib/core/[domain]/errors.ts` file, colocated with domain logic.
 
 ## Configuration Pattern
 
