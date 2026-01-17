@@ -36,9 +36,11 @@ A Next.js project starter with Effect-TS, designed to be cloned as the foundatio
 3. **Set up environment:**
 
    ```bash
-   cp .env.example .env.local
-   # Edit .env.local with your values
+   cp .env.example .env.local  # Main env file for Next.js
+   cp .env.example .env        # For tools that expect .env (e.g., Drizzle)
    ```
+
+   Both files are gitignored. Most variables go in `.env.local`, `.env` is for tool compatibility.
 
 4. **Push database schema:**
 
