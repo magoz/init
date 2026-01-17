@@ -32,6 +32,7 @@ const TelegramConfigLive = Layer.effect(
 )
 
 // Service definition
+// v4 migration: Change Effect.Service to ServiceMap.Service
 export class Telegram extends Effect.Service<Telegram>()('@app/Telegram', {
   effect: Effect.gen(function* () {
     const config = yield* TelegramConfig
@@ -86,9 +87,11 @@ export class Telegram extends Effect.Service<Telegram>()('@app/Telegram', {
       )
 
     return { send } as const
-  }),
-  dependencies: [TelegramConfigLive]
-}) {}
+  })
+}) {
+  // Base layer (has unsatisfied TelegramConfig dependency)
+  static layer = this.Default
 
-// Layer export for composition
-export const TelegramLive = Telegram.Default
+  // Composed layer with all dependencies satisfied
+  static Live = this.layer.pipe(Layer.provide(TelegramConfigLive))
+}

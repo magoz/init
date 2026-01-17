@@ -1,5 +1,5 @@
-import { Effect, FiberRef } from 'effect'
-import { Telegram, TelegramLive } from '../telegram/live-layer'
+import { Effect, FiberRef, Layer } from 'effect'
+import { Telegram } from '../telegram/live-layer'
 
 export type Log = {
   timestamp: string
@@ -43,6 +43,7 @@ const getDuration = (logs: Log[]) =>
     : 0
 
 // Service definition
+// v4 migration: Change Effect.Service to ServiceMap.Service
 export class Activity extends Effect.Service<Activity>()('@app/Activity', {
   effect: Effect.gen(function* () {
     const telegram = yield* Telegram
@@ -91,9 +92,11 @@ export class Activity extends Effect.Service<Activity>()('@app/Activity', {
     }
 
     return { add, send } as const
-  }),
-  dependencies: [TelegramLive]
-}) {}
+  })
+}) {
+  // Base layer (has unsatisfied Telegram dependency)
+  static layer = this.Default
 
-// Layer export for composition
-export const ActivityLive = Activity.Default
+  // Composed layer with all dependencies satisfied
+  static Live = this.layer.pipe(Layer.provide(Telegram.Live))
+}

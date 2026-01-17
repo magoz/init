@@ -27,8 +27,8 @@ const EmailConfigLive = Layer.effect(
   })
 )
 
-// Service definition using Effect.Service pattern (v3)
-// Migration to v4: Change Effect.Service to ServiceMap.Service
+// Service definition
+// v4 migration: Change Effect.Service to ServiceMap.Service
 export class Email extends Effect.Service<Email>()('@app/Email', {
   effect: Effect.gen(function* () {
     const config = yield* EmailConfig
@@ -70,9 +70,11 @@ export class Email extends Effect.Service<Email>()('@app/Email', {
       )
 
     return { sendEmail } as const
-  }),
-  dependencies: [EmailConfigLive]
-}) {}
+  })
+}) {
+  // Base layer (has unsatisfied EmailConfig dependency)
+  static layer = this.Default
 
-// Layer export for composition
-export const EmailLive = Email.Default
+  // Composed layer with all dependencies satisfied
+  static Live = this.layer.pipe(Layer.provide(EmailConfigLive))
+}

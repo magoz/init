@@ -10,17 +10,20 @@ const PgLive = PgClient.layerConfig({
   ssl: Config.succeed(true)
 })
 
-// Database service definition
+// Service definition
+// v4 migration: Change Effect.Service to ServiceMap.Service
 export class Db extends Effect.Service<Db>()('@app/Db', {
-  dependencies: [PgLive],
   effect: Effect.gen(function* () {
     const client = yield* PgClient.PgClient
     return drizzle(client, { schema })
   })
-}) {}
+}) {
+  // Base layer (has unsatisfied PgClient dependency)
+  static layer = this.Default
+
+  // Composed layer with all dependencies satisfied
+  static Live = this.layer.pipe(Layer.provideMerge(PgLive), Layer.provide(NodeContext.layer))
+}
 
 // Type export for convenience
 export type Database = EffectPgDatabase<typeof schema>
-
-// Layer export for composition
-export const DbLive = Layer.merge(Db.Default, PgLive).pipe(Layer.provide(NodeContext.layer))

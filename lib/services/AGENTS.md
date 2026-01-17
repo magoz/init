@@ -17,7 +17,7 @@ lib/services/
 
 ## Service Definition Pattern
 
-Use `Effect.Service` for all service definitions:
+Use `Effect.Service` with static `layer` and `Live` properties for v4-compatible layer composition:
 
 ```typescript
 import { Effect, Layer, Config, Context } from 'effect'
@@ -42,6 +42,7 @@ const ServiceConfigLive = Layer.effect(
 )
 
 // Service definition
+// v4 migration: Change Effect.Service to ServiceMap.Service
 export class ServiceName extends Effect.Service<ServiceName>()('@app/ServiceName', {
   effect: Effect.gen(function* () {
     const config = yield* ServiceConfig
@@ -58,23 +59,59 @@ export class ServiceName extends Effect.Service<ServiceName>()('@app/ServiceName
       }).pipe(Effect.withSpan('ServiceName.methodTwo'))
 
     return { methodOne, methodTwo } as const
-  }),
-  dependencies: [ServiceConfigLive] // Optional: internal layers
-}) {}
+  })
+}) {
+  // Base layer (may have unsatisfied dependencies)
+  static layer = this.Default
 
-// Layer export for composition
-export const ServiceLive = ServiceName.Default
+  // Composed layer with all dependencies satisfied
+  static Live = this.layer.pipe(Layer.provide(ServiceConfigLive))
+}
+
+// Re-export for convenience
+export const ServiceLive = ServiceName.Live
+```
+
+### Why Static `layer` and `Live` Properties?
+
+This pattern is **v4-compatible**. In Effect v4, `ServiceMap.Service` does NOT have a `dependencies` option. Dependencies must be composed externally via `Layer.provide`.
+
+| Property       | Purpose                                              |
+| -------------- | ---------------------------------------------------- |
+| `static layer` | Base layer with potentially unsatisfied dependencies |
+| `static Live`  | Fully composed layer with all dependencies satisfied |
+
+This makes the migration to v4 straightforward:
+
+```typescript
+// v3 (current)
+export class Service extends Effect.Service<Service>()("@app/Service", {
+  effect: Effect.gen(function* () { ... }),
+}) {
+  static layer = this.Default
+  static Live = this.layer.pipe(Layer.provide(ConfigLive))
+}
+
+// v4 (future) - minimal changes needed
+export class Service extends ServiceMap.Service<Service, {
+  readonly method: () => Effect.Effect<void>
+}>("@app/Service") {
+  static layer = Layer.effect(this)(Effect.gen(function* () { ... }))
+  static Live = this.layer.pipe(Layer.provide(ConfigLive))
+}
 ```
 
 ## Naming Conventions
 
-| Element       | Convention               | Example                   |
-| ------------- | ------------------------ | ------------------------- |
-| Service class | PascalCase, noun         | `Auth`, `Email`, `Db`     |
-| Service tag   | `@app/ServiceName`       | `@app/Auth`               |
-| Layer export  | `ServiceLive`            | `AuthLive`, `EmailLive`   |
-| Methods       | camelCase, verb-first    | `sendEmail`, `getSession` |
-| Spans         | `ServiceName.methodName` | `Auth.signIn`             |
+| Element               | Convention               | Example                   |
+| --------------------- | ------------------------ | ------------------------- |
+| Service class         | PascalCase, noun         | `Auth`, `Email`, `Db`     |
+| Service tag           | `@app/ServiceName`       | `@app/Auth`               |
+| Static layer          | `layer`                  | `Auth.layer`              |
+| Static composed layer | `Live`                   | `Auth.Live`               |
+| Layer re-export       | `ServiceLive`            | `AuthLive`, `EmailLive`   |
+| Methods               | camelCase, verb-first    | `sendEmail`, `getSession` |
+| Spans                 | `ServiceName.methodName` | `Auth.signIn`             |
 
 ## Error Definition Pattern
 
@@ -160,23 +197,31 @@ Services are composed in `lib/layers.ts`:
 
 ```typescript
 import { Layer } from 'effect'
-import { Auth, AuthDbLive } from './services/auth/live-layer'
-import { Email, EmailLive } from './services/email/live-layer'
+import { Auth, AuthLive } from './services/auth/live-layer'
 import { Db, DbLive } from './services/db/live-layer'
+import { Email } from './services/email/live-layer'
 
-// Compose layers with dependencies
-export const AuthLayer = Layer.provide(Auth.Default, Layer.merge(AuthDbLive, EmailLive))
+// Combined app layer - use .Live which has all dependencies satisfied
+export const AppLayer = Layer.mergeAll(AuthLive, DbLive, TelegramLive, ActivityLive, TelemetryLayer)
 
-// Combined app layer
-export const AppLayer = Layer.mergeAll(AuthLayer, DbLive, TelemetryLayer)
+// Re-export services for convenient imports
+export { Auth, Db, Email, Telegram, Activity }
 ```
+
+### Layer Composition Functions
+
+| Function             | Purpose                                                |
+| -------------------- | ------------------------------------------------------ |
+| `Layer.provide`      | Satisfies dependencies, removes them from requirements |
+| `Layer.provideMerge` | Satisfies dependencies AND keeps them in output        |
+| `Layer.merge`        | Combines two independent layers                        |
+| `Layer.mergeAll`     | Combines multiple independent layers                   |
 
 ## Using Services
 
 ```typescript
 import { Effect } from 'effect'
-import { Auth } from '@/lib/services/auth/live-layer'
-import { AuthLayer } from '@/lib/layers'
+import { Auth, AuthLive } from '@/lib/services/auth/live-layer'
 
 const program = Effect.gen(function* () {
   const auth = yield* Auth
@@ -185,39 +230,63 @@ const program = Effect.gen(function* () {
 })
 
 // Run with layer
-Effect.runPromise(program.pipe(Effect.provide(AuthLayer)))
+Effect.runPromise(program.pipe(Effect.provide(AuthLive)))
 ```
 
-## Effect v4 Migration
+## Effect v4 Migration Guide
 
 When upgrading to Effect v4, services will migrate from `Effect.Service` to `ServiceMap.Service`:
 
 ```typescript
 // v3 (current)
-export class Auth extends Effect.Service<Auth>()("@app/Auth", {
-  effect: Effect.gen(function* () { ... }),
-}) {}
+export class Auth extends Effect.Service<Auth>()('@app/Auth', {
+  effect: Effect.gen(function* () {
+    const config = yield* AuthConfig
+    // ...
+    return { signIn, signOut } as const
+  })
+}) {
+  static layer = this.Default
+  static Live = this.layer.pipe(Layer.provide(AuthConfigLive))
+}
 
 // v4 (future)
-export class Auth extends ServiceMap.Service<Auth, {
-  readonly signIn: (email: string, password: string) => Effect.Effect<Session, AuthError>
-  readonly signOut: () => Effect.Effect<void>
-}>("@app/Auth") {
-  static Live = Layer.effect(this)(
-    Effect.gen(function* () { ... })
+export class Auth extends ServiceMap.Service<
+  Auth,
+  {
+    readonly signIn: (email: string, password: string) => Effect.Effect<Session, AuthError>
+    readonly signOut: () => Effect.Effect<void>
+  }
+>('@app/Auth') {
+  static layer = Layer.effect(this)(
+    Effect.gen(function* () {
+      const config = yield* AuthConfig
+      // ...
+      return { signIn, signOut }
+    })
   )
+  static Live = this.layer.pipe(Layer.provide(AuthConfigLive))
 }
 ```
+
+**Key v4 changes:**
+
+- `Effect.Service` → `ServiceMap.Service`
+- Service interface is declared in the type parameter, not inferred
+- `this.Default` → `Layer.effect(this)(effect)`
+- No `dependencies` option - always use `Layer.provide`
 
 ## Checklist for New Services
 
 - [ ] Create directory: `lib/services/[name]/`
 - [ ] Create `live-layer.ts` with `Effect.Service` pattern
+- [ ] Add static `layer` property (base layer)
+- [ ] Add static `Live` property (composed with dependencies)
 - [ ] Create `errors.ts` with `Data.TaggedError` errors (if needed)
 - [ ] Use `Config.*` for all environment variables
 - [ ] Add `Effect.withSpan()` to all methods
 - [ ] Add `Effect.annotateCurrentSpan()` for relevant attributes
 - [ ] Add `Effect.tapError()` for error logging
-- [ ] Export `ServiceLive` layer
-- [ ] Add layer composition to `lib/layers.ts`
+- [ ] Export `ServiceLive` for convenience
+- [ ] Add to `lib/layers.ts` AppLayer
 - [ ] Return `as const` from service effect for type inference

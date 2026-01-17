@@ -1,5 +1,5 @@
 import { Effect } from 'effect'
-import { Auth, AuthLive } from '@/lib/services/auth/live-layer'
+import { Auth } from '@/lib/services/auth/live-layer'
 import { toNextJsHandler } from 'better-auth/next-js'
 
 async function getAuthHandler() {
@@ -7,7 +7,7 @@ async function getAuthHandler() {
     Effect.gen(function* () {
       const authService = yield* Auth
       return authService.auth
-    }).pipe(Effect.provide(AuthLive), Effect.scoped)
+    }).pipe(Effect.provide(Auth.Live), Effect.scoped)
   )
 }
 

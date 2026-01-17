@@ -4,7 +4,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { nextCookies } from 'better-auth/next-js'
 import * as schema from '../db/schema'
 import { emailOTP } from 'better-auth/plugins'
-import { Email, EmailLive } from '../email/live-layer'
+import { Email } from '../email/live-layer'
 import { AuthApiError, AuthConfigError } from './errors'
 import { drizzle } from 'drizzle-orm/neon-http'
 
@@ -57,7 +57,8 @@ const AuthConfigLive = Layer.effect(
   })
 )
 
-// Auth service definition
+// Service definition
+// v4 migration: Change Effect.Service to ServiceMap.Service
 export class Auth extends Effect.Service<Auth>()('@app/Auth', {
   effect: Effect.gen(function* () {
     const authDb = yield* AuthDb
@@ -172,9 +173,13 @@ export class Auth extends Effect.Service<Auth>()('@app/Auth', {
       updateUser,
       changePassword
     } as const
-  }),
-  dependencies: [AuthConfigLive, AuthDbLive, EmailLive]
-}) {}
+  })
+}) {
+  // Base layer (has unsatisfied dependencies: AuthDb, AuthConfig, Email)
+  static layer = this.Default
 
-// Layer export for composition
-export const AuthLive = Auth.Default
+  // Composed layer with all dependencies satisfied
+  static Live = this.layer.pipe(
+    Layer.provide(Layer.mergeAll(AuthConfigLive, AuthDbLive, Email.Live))
+  )
+}
