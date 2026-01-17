@@ -1,6 +1,7 @@
-import { Effect } from 'effect'
-import { sql } from 'drizzle-orm'
-import { Db } from '@/lib/services/db/live-layer'
+import { neon } from '@neondatabase/serverless'
+import { drizzle } from 'drizzle-orm/neon-http'
+import { reset } from 'drizzle-seed'
+import * as schema from '@/lib/services/db/schema'
 import { ensureTestEnvironment } from './utils/ensure-test-environment'
 
 const globalSetup = async () => {
@@ -8,17 +9,11 @@ const globalSetup = async () => {
 
   console.log('🧹 Resetting database...')
 
-  const resetEffect = Effect.gen(function* () {
-    const db = yield* Db
+  // Use direct connection for reset (drizzle-seed doesn't support Effect-wrapped db)
+  const sql = neon(process.env.DATABASE_URL!)
+  const db = drizzle({ client: sql, schema })
 
-    yield* db.execute(sql`TRUNCATE TABLE "post" CASCADE`)
-    yield* db.execute(sql`TRUNCATE TABLE "session" CASCADE`)
-    yield* db.execute(sql`TRUNCATE TABLE "account" CASCADE`)
-    yield* db.execute(sql`TRUNCATE TABLE "verification" CASCADE`)
-    yield* db.execute(sql`TRUNCATE TABLE "user" CASCADE`)
-  }).pipe(Effect.provide(Db.Live), Effect.scoped)
-
-  await Effect.runPromise(resetEffect)
+  await reset(db, schema)
 
   console.log('✅ Database reset complete')
 }
