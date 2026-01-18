@@ -13,6 +13,7 @@ Next.js 16 App Router application with Effect-TS service architecture, Drizzle O
 - **Use `pnpm` exclusively** - not npm or yarn
 - **Run `pnpm tsc` before finishing** - ensure types pass
 - **Run `pnpm lint` to check for errors** - fix any issues
+- **Run `pnpm test:run` to verify tests pass** - fix failures before committing
 
 ### Effect-TS Rules (Enforced by ESLint)
 
@@ -58,6 +59,7 @@ init/
 | Add page with Effect | `app/*/page.tsx`                | Use `NextEffect.runPromise()` + RSC       |
 | Add API route        | `app/api/[route]/route.ts`      | Only for webhooks/external APIs           |
 | Add UI component     | `components/ui/`                | Uses Base UI, not Radix                   |
+| Add tests            | `lib/core/[domain]/*.test.ts`   | Colocated with source, use @effect/vitest |
 | Database schema      | `lib/services/db/schema.ts`     | Drizzle ORM                               |
 | Auth flow            | `app/(auth)/`                   | better-auth + OTP email                   |
 | Service dependencies | `lib/layers.ts`                 | AppLayer merges all services              |
@@ -202,7 +204,6 @@ export const deletePostAction = async (postId: Post['id']) => {
 - **React Compiler enabled** - automatic memoization (experimental)
 - **PostHog proxied** - requests via `/ph/*` rewrites to bypass ad-blockers
 - **Drizzle beta** - using `1.0.0-beta.11`, may have breaking changes
-- **No tests yet** - Vitest configured but no test files exist
 - Effect v4 migration: services designed for easy `Effect.Service` → `ServiceMap.Service` transition
 
 ## SPECS
@@ -215,6 +216,7 @@ Detailed conventions and patterns are documented in `specs/`:
 | [EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md)       | Critical rules for Effect code                           |
 | [TYPESCRIPT_CONVENTIONS.md](specs/TYPESCRIPT_CONVENTIONS.md)     | TypeScript patterns and eslint-disable justification     |
 | [EFFECT_TESTING.md](specs/EFFECT_TESTING.md)                     | Testing with @effect/vitest, TestClock, property testing |
+| [TESTING_STRATEGY.md](specs/TESTING_STRATEGY.md)                 | Testing philosophy, coverage targets, mock patterns      |
 | [USABILITY_BEST_PRACTICES.md](specs/USABILITY_BEST_PRACTICES.md) | UX patterns: auth, empty states, errors, forms, a11y     |
 | [NUQS_URL_STATE.md](specs/NUQS_URL_STATE.md)                     | URL state for filters, search, sorting with nuqs         |
 
