@@ -69,7 +69,7 @@
         "Test demonstrates Arbitrary.make() from post Schema",
         "Example tests filter/sort invariants"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "test-6",

@@ -17,6 +17,8 @@ Started: 2026-01-18
 - layer() shares Layer across tests (state persists between tests in same block)
 - Nested it.layer() merges with parent (overrides services)
 - Use Effect.fail() not throw for errors in Effect.gen contexts
+- Property testing: pass Schema to it.prop (e.g., `[PostInput]`), not Arbitrary
+- Effect.Array.partition returns `[excluded, included]` (predicate=false first!)
 
 ---
 
@@ -51,3 +53,17 @@ Started: 2026-01-18
 - Completed as part of test-3 (layer-sharing.test.ts already demonstrates all requirements)
 - Mock Auth returns test session/user, PostRepository uses in-memory storage, calls tracked, factory pattern established
 - **Learnings:** Task requirements fully satisfied by previous implementation.
+
+## Task - test-5
+
+- Created lib/core/post/property-testing.test.ts with property-based tests
+- Demonstrated it.prop with Schema, it.effect.prop for async validation
+- Showed Arbitrary.make() pattern (PostInput schema)
+- Tested filter/sort invariants (idempotency, partition consistency, count invariants)
+- Files changed: lib/core/post/property-testing.test.ts
+- **Learnings:** 
+  - Pass Schema directly to it.prop (e.g., `[PostInput]` not `[postInputArb]`)
+  - Arbitrary.make(Schema) creates arbitrary but Schema works in it.prop
+  - Effect.Array.partition returns `[excluded, included]` (counterintuitive!)
+  - Property testing found real bugs: sort needed stable secondary key for duplicates
+  - Stable sorts require secondary key when primary key has duplicates
