@@ -29,6 +29,13 @@ Next.js 16 App Router application with Effect-TS service architecture, Drizzle O
 
 See `specs/EFFECT_BEST_PRACTICES.md` for detailed explanations and alternatives.
 
+## SPECIFICATIONS
+
+**Before implementing any feature, consult `specs/README.md`.**
+
+- **Specs describe intent; code describes reality.** Check the codebase first before assuming something is/isn't implemented.
+- **Use specs as guidance.** Follow patterns, types, and architecture defined in relevant specs.
+
 ## STRUCTURE
 
 ```
@@ -209,21 +216,6 @@ export const deletePostAction = async (postId: Post['id']) => {
 - **PostHog proxied** - requests via `/ph/*` rewrites to bypass ad-blockers
 - **Drizzle beta** - using `1.0.0-beta.11`, may have breaking changes
 - Effect v4 migration: services designed for easy `Effect.Service` → `ServiceMap.Service` transition
-
-## SPECS
-
-Detailed conventions and patterns are documented in `specs/`:
-
-| Spec                                                             | Description                                              |
-| ---------------------------------------------------------------- | -------------------------------------------------------- |
-| [PAGE_PATTERNS.md](specs/PAGE_PATTERNS.md)                       | Suspense + Content pattern for dynamic/auth pages        |
-| [DATA_ACCESS_PATTERNS.md](specs/DATA_ACCESS_PATTERNS.md)         | RSC, Server Actions, S3 signed URLs - when to use each   |
-| [EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md)       | Critical rules for Effect code                           |
-| [TYPESCRIPT_CONVENTIONS.md](specs/TYPESCRIPT_CONVENTIONS.md)     | TypeScript patterns and eslint-disable justification     |
-| [EFFECT_TESTING.md](specs/EFFECT_TESTING.md)                     | Testing with @effect/vitest, TestClock, property testing |
-| [TESTING_STRATEGY.md](specs/TESTING_STRATEGY.md)                 | Testing philosophy, coverage targets, mock patterns      |
-| [USABILITY_BEST_PRACTICES.md](specs/USABILITY_BEST_PRACTICES.md) | UX patterns: auth, empty states, errors, forms, a11y     |
-| [NUQS_URL_STATE.md](specs/NUQS_URL_STATE.md)                     | URL state for filters, search, sorting with nuqs         |
 
 ## SUBDIRECTORY DOCS
 
