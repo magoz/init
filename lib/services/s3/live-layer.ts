@@ -1,4 +1,4 @@
-import { S3 as S3Client } from '@effect-aws/client-s3'
+import { S3 as S3Client, S3Service } from '@effect-aws/client-s3'
 import { Config, Context, Effect, Layer } from 'effect'
 import { S3ConfigError, S3NoBodyError } from './errors'
 
@@ -74,6 +74,8 @@ const getContentType = (key: string): string => {
 export class S3 extends Effect.Service<S3>()('@app/S3', {
   effect: Effect.gen(function* () {
     const config = yield* S3Config
+    // Capture the AWS S3 service instance at construction time
+    const s3Client = yield* S3Service
 
     const getObjectKeyFromUrl = (url: string) => url.replace(config.baseUrl, '')
 
@@ -88,7 +90,7 @@ export class S3 extends Effect.Service<S3>()('@app/S3', {
           's3.key': key
         })
 
-        const response = yield* S3Client.getObject({
+        const response = yield* s3Client.getObject({
           Bucket: config.bucket,
           Key: key
         })
@@ -126,7 +128,7 @@ export class S3 extends Effect.Service<S3>()('@app/S3', {
           's3.contentType': resolvedContentType
         })
 
-        yield* S3Client.putObject({
+        yield* s3Client.putObject({
           Bucket: config.bucket,
           Key: key,
           Body: buffer,
@@ -151,7 +153,7 @@ export class S3 extends Effect.Service<S3>()('@app/S3', {
           's3.expiresIn': expiresIn
         })
 
-        const signedUrl = yield* S3Client.putObject(
+        const signedUrl = yield* s3Client.putObject(
           {
             Bucket: config.bucket,
             Key: key
@@ -173,7 +175,7 @@ export class S3 extends Effect.Service<S3>()('@app/S3', {
           's3.destKey': destKey
         })
 
-        yield* S3Client.copyObject({
+        yield* s3Client.copyObject({
           Bucket: config.bucket,
           CopySource: `${config.bucket}/${sourceKey}`,
           Key: destKey
@@ -198,7 +200,7 @@ export class S3 extends Effect.Service<S3>()('@app/S3', {
           's3.prefix': prefix
         })
 
-        const response = yield* S3Client.listObjectsV2({
+        const response = yield* s3Client.listObjectsV2({
           Bucket: config.bucket,
           Prefix: prefix
         })
@@ -222,7 +224,7 @@ export class S3 extends Effect.Service<S3>()('@app/S3', {
           's3.key': key
         })
 
-        yield* S3Client.deleteObject({
+        yield* s3Client.deleteObject({
           Bucket: config.bucket,
           Key: key
         })
@@ -238,7 +240,7 @@ export class S3 extends Effect.Service<S3>()('@app/S3', {
           's3.prefix': prefix
         })
 
-        const response = yield* S3Client.listObjectsV2({
+        const response = yield* s3Client.listObjectsV2({
           Bucket: config.bucket,
           Prefix: prefix
         })
@@ -249,7 +251,7 @@ export class S3 extends Effect.Service<S3>()('@app/S3', {
           return { deletedCount: 0 }
         }
 
-        yield* S3Client.deleteObjects({
+        yield* s3Client.deleteObjects({
           Bucket: config.bucket,
           Delete: {
             Objects: objects.map((obj: { Key?: string }) => ({ Key: obj.Key! })),
@@ -279,9 +281,9 @@ export class S3 extends Effect.Service<S3>()('@app/S3', {
     } as const
   })
 }) {
-  // Base layer (has unsatisfied S3Config dependency)
+  // Base layer (has unsatisfied S3Config and S3Service dependencies)
   static layer = this.Default
 
   // Composed layer with all dependencies satisfied
-  static Live = this.layer.pipe(Layer.provide(S3ConfigLive))
+  static Live = this.layer.pipe(Layer.provide(S3ConfigLive), Layer.provide(S3Client.defaultLayer))
 }

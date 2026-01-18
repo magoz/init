@@ -50,16 +50,19 @@ init/
 
 ## WHERE TO LOOK
 
-| Task                 | Location                    | Notes                                      |
-| -------------------- | --------------------------- | ------------------------------------------ |
-| Add new service      | `lib/services/[name]/`      | Follow `lib/services/AGENTS.md` pattern    |
-| Add API route        | `app/api/[route]/route.ts`  | Use `ManagedRuntime` pattern               |
-| Add page with Effect | `app/*/page.tsx`            | Use `NextEffect.runPromise()`              |
-| Add UI component     | `components/ui/`            | Uses Base UI, not Radix                    |
-| Database schema      | `lib/services/db/schema.ts` | Drizzle ORM                                |
-| Auth flow            | `app/(auth)/`               | better-auth + OTP email                    |
-| Service dependencies | `lib/layers.ts`             | AppLayer merges all services               |
-| Error types          | `lib/services/*/errors.ts`  | Each service/core subfolder has own errors |
+| Task                 | Location                        | Notes                                     |
+| -------------------- | ------------------------------- | ----------------------------------------- |
+| Add server action    | `lib/core/[domain]/*-action.ts` | One action per file, see DATA_ACCESS spec |
+| Add domain function  | `lib/core/[domain]/*.ts`        | Pure Effect functions for business logic  |
+| Add new service      | `lib/services/[name]/`          | Follow `lib/services/AGENTS.md` pattern   |
+| Add page with Effect | `app/*/page.tsx`                | Use `NextEffect.runPromise()` + RSC       |
+| Add API route        | `app/api/[route]/route.ts`      | Only for webhooks/external APIs           |
+| Add UI component     | `components/ui/`                | Uses Base UI, not Radix                   |
+| Database schema      | `lib/services/db/schema.ts`     | Drizzle ORM                               |
+| Auth flow            | `app/(auth)/`                   | better-auth + OTP email                   |
+| Service dependencies | `lib/layers.ts`                 | AppLayer merges all services              |
+| Error types          | `lib/core/errors/index.ts`      | Shared domain errors                      |
+| File uploads         | `lib/core/file/*-action.ts`     | S3 signed URLs pattern                    |
 
 ## CODE MAP
 
@@ -117,12 +120,15 @@ export class ServiceName extends Effect.Service<ServiceName>()('@app/ServiceName
 
 | Pattern                              | Correct Approach                                  |
 | ------------------------------------ | ------------------------------------------------- |
+| API routes for CRUD operations       | Server actions (`lib/core/[domain]/*-action.ts`)  |
+| Streaming files through server       | S3 signed URLs (client uploads directly to S3)    |
 | `process.env.X` with throws          | `yield* Config.string('X')`                       |
 | `router.push()` for logout           | `window.location.href = '/'` (layout cache issue) |
 | Barrel files (`index.ts` re-exports) | Import from `live-layer.ts` directly              |
 | `Effect.runPromise()` in pages       | `NextEffect.runPromise()` (handles redirects)     |
 | Layer `dependencies` option          | `Layer.provide()` externally (v4 compat)          |
 | Multiple services per directory      | One service per directory                         |
+| Multiple actions per file            | One action per file ending in `-action.ts`        |
 
 ## UNIQUE STYLES
 
@@ -140,9 +146,46 @@ Uses **Base UI** (`@base-ui/react`) primitives instead of Radix UI. Components a
 AppLayer
 ├── Auth.Live → Email.Live
 ├── Db.Live
+├── S3.Live
 ├── Telegram.Live
 ├── Activity.Live → Telegram.Live
 └── TelemetryLayer
+```
+
+### Data Access Patterns
+
+See `specs/DATA_ACCESS_PATTERNS.md` for full details. Summary:
+
+| Operation            | Pattern       | Location                                   |
+| -------------------- | ------------- | ------------------------------------------ |
+| Read data for pages  | RSC           | `app/*/page.tsx`                           |
+| Create/Update/Delete | Server Action | `lib/core/[domain]/*-action.ts`            |
+| File upload          | S3 signed URL | `lib/core/file/get-upload-url-action.ts`   |
+| File download        | S3 signed URL | `lib/core/file/get-download-url-action.ts` |
+| External webhooks    | API Route     | `app/api/webhooks/*/route.ts`              |
+
+**Server Action Pattern:**
+
+```typescript
+// lib/core/post/delete-post-action.ts
+'use server'
+
+export const deletePostAction = async (postId: Post['id']) => {
+  return await NextEffect.runPromise(
+    Effect.gen(function* () {
+      const session = yield* getSession()
+      yield* deletePost(postId)
+    }).pipe(
+      Effect.withSpan('action.post.delete'),
+      Effect.provide(AppLayer),
+      Effect.scoped,
+      Effect.matchEffect({
+        onFailure: error => /* handle errors */,
+        onSuccess: () => Effect.sync(() => revalidatePath('/posts'))
+      })
+    )
+  )
+}
 ```
 
 ## NOTES
@@ -160,6 +203,7 @@ Detailed conventions and patterns are documented in `specs/`:
 
 | Spec                                                             | Description                                              |
 | ---------------------------------------------------------------- | -------------------------------------------------------- |
+| [DATA_ACCESS_PATTERNS.md](specs/DATA_ACCESS_PATTERNS.md)         | RSC, Server Actions, S3 signed URLs - when to use each   |
 | [EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md)       | Critical rules for Effect code                           |
 | [TYPESCRIPT_CONVENTIONS.md](specs/TYPESCRIPT_CONVENTIONS.md)     | TypeScript patterns and eslint-disable justification     |
 | [EFFECT_TESTING.md](specs/EFFECT_TESTING.md)                     | Testing with @effect/vitest, TestClock, property testing |
