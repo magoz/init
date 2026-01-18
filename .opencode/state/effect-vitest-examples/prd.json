@@ -81,7 +81,7 @@
         "Test demonstrates Effect.catchTag for NotFoundError recovery",
         "Examples use domain errors (UnauthenticatedError, NotFoundError)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "test-7",

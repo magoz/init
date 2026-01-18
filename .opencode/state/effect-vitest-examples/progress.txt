@@ -67,3 +67,22 @@ Started: 2026-01-18
   - Effect.Array.partition returns `[excluded, included]` (counterintuitive!)
   - Property testing found real bugs: sort needed stable secondary key for duplicates
   - Stable sorts require secondary key when primary key has duplicates
+
+## Task - test-6
+
+- Created lib/core/post/error-testing.test.ts with comprehensive error testing patterns
+- Demonstrated Effect.either for converting errors to Left/Right (3 tests)
+- Demonstrated Effect.exit with Cause inspection for Fail vs Die distinction (4 tests)
+- Demonstrated Effect.catchTag for selective error recovery (4 tests)
+- Included bonus tests combining patterns (2 tests)
+- Files changed: lib/core/post/error-testing.test.ts
+- **Learnings:**
+  - Effect.either: converts Effect<A, E> to Effect<Either<E, A>, never> for testing expected errors
+  - Effect.exit: converts to Exit<E, A> for full Cause inspection (Fail vs Die vs Interrupt)
+  - Cause.isFailType() checks for expected errors, Cause.isDieType() checks for defects (thrown errors)
+  - Cause.failureOption() and Cause.dieOption() extract error/defect from Cause
+  - Effect.catchTag: pipe-style syntax `effect.pipe(Effect.catchTag('Tag', handler))`
+  - catchTag requires union error type annotation when effect type is narrower than recovery needs
+  - Type annotations needed: `Effect.Effect<A, E1 | E2>` for catchTag to work with either error
+  - Use instanceof check not type assertion for defect.value when testing Die causes
+  - 13 tests total covering all three error handling patterns + combinations
