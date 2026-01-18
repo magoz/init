@@ -190,5 +190,6 @@ export const getSomething = (id: string) =>
 
 ## Inspiration
 
+- [ghuntley/loom](https://github.com/ghuntley/loom) - Ralph
 - [dmmulroy/.dotfiles](https://github.com/dmmulroy/.dotfiles) - OpenCode skills and commands
-- [mikearnaldi/accountability](https://github.com/mikearnaldi/accountability) - Specs structure
+- [mikearnaldi/accountability](https://github.com/mikearnaldi/accountability) - Specs & Effect
