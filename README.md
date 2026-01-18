@@ -38,9 +38,15 @@ A Next.js project starter with Effect-TS, designed to be cloned as the foundatio
 
    ```bash
    cp .env.example .env.local
+   cp .env.example .env.test   # For e2e tests (use a separate test database)
    ```
 
-   All environment variables go in `.env.local` (gitignored). Next.js and all CLI tools (Drizzle, Vitest, etc.) are configured to read from this file.
+   | File         | Purpose                                                 |
+   | ------------ | ------------------------------------------------------- |
+   | `.env.local` | Development - used by Next.js, Drizzle, Vitest          |
+   | `.env.test`  | E2E tests - used by Playwright (separate test database) |
+
+   Both files are gitignored.
 
 4. **Run development server:**
    ```bash
