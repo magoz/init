@@ -187,3 +187,8 @@ export const getSomething = (id: string) =>
 4. Add your own database schema in `lib/services/db/schema.ts`
 5. Create your services in `lib/core/`
 6. Remove unwanted services in `lib/services/`. Add more services as needed (port them to the init repo).
+
+## Inspiration
+
+- [dmmulroy/.dotfiles](https://github.com/dmmulroy/.dotfiles) - OpenCode skills and commands
+- [mikearnaldi/accountability](https://github.com/mikearnaldi/accountability) - Specs structure
