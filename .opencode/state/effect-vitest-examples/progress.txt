@@ -1,0 +1,18 @@
+# Progress Log
+
+PRD: effect-vitest-examples
+Started: 2026-01-18
+
+## Codebase Patterns
+
+<!-- Consolidate reusable patterns here -->
+
+---
+
+<!-- Task logs below - APPEND ONLY -->
+
+## Task - setup-1
+
+- Installed @effect/vitest package
+- Files changed: package.json, pnpm-lock.yaml
+- **Learnings:** @effect/vitest doesn't need plugin in vitest.config.ts - just import `it` from '@effect/vitest' in test files. Peer dep warning about vitest 4.x vs 3.x is expected but compatible.
