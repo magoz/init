@@ -98,3 +98,21 @@ Started: 2026-01-18
   - it.prop doesn't support .skip() method like regular it.effect
   - Comment out flaky property tests instead of trying to skip them
   - Testcontainers section in EFFECT_TESTING.md covers both per-test containers and global setup
+
+## Task - docs-1
+
+- Created specs/TESTING_STRATEGY.md with comprehensive testing strategy
+- Documents testing philosophy (what to test, what not to test)
+- Coverage targets by code type (domain 80%+, services 70%+, UI 30%+)
+- Test organization pattern (colocated *.test.ts files)
+- Unit vs integration vs E2E test guidance
+- Mock strategy for Effect services (factory pattern)
+- References specs/EFFECT_TESTING.md for implementation details
+- Includes test commands table and anti-patterns section
+- Files changed: specs/TESTING_STRATEGY.md
+- **Learnings:**
+  - Testing philosophy should focus on behavior, not implementation
+  - Coverage targets vary by code type - don't chase 100%
+  - Colocated tests easier to find and maintain than separate test directories
+  - Mock strategy should use factory functions returning layer + test helpers
+  - Integration tests need testcontainers for real database testing

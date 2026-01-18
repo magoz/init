@@ -105,7 +105,7 @@
         "Mock strategy for Effect services",
         "Reference to specs/EFFECT_TESTING.md for implementation patterns"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "docs-2",
