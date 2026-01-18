@@ -3,7 +3,8 @@
 import { test as base } from '@playwright/test'
 import type { APIRequestContext } from '@playwright/test'
 import { Effect } from 'effect'
-import { createTestSetup, TestData } from './utils/setup'
+import type { TestData } from './utils/setup';
+import { createTestSetup } from './utils/setup'
 
 type WorkerFixtures = {
   testData: TestData

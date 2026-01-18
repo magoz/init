@@ -115,19 +115,36 @@ export class Service extends ServiceMap.Service<Service, {
 
 ## Error Definition Pattern
 
-Define errors in a separate `errors.ts` file using `Data.TaggedError`:
+Define errors in a separate `errors.ts` file using `Schema.TaggedError`:
 
 ```typescript
-import { Data } from 'effect'
+import * as Schema from 'effect/Schema'
 
-export class ServiceApiError extends Data.TaggedError('ServiceApiError')<{
-  error: unknown
-}> {}
+// Schema.TaggedError provides automatic type guards via Schema.is()
+export class ServiceApiError extends Schema.TaggedError<ServiceApiError>()('ServiceApiError', {
+  error: Schema.Unknown
+}) {
+  get message(): string {
+    return `API error: ${String(this.error)}`
+  }
+}
 
-export class ServiceConfigError extends Data.TaggedError('ServiceConfigError')<{
-  message: string
-}> {}
+export class ServiceConfigError extends Schema.TaggedError<ServiceConfigError>()(
+  'ServiceConfigError',
+  { message: Schema.String }
+) {}
+
+// Type guards are automatically derived
+export const isServiceApiError = Schema.is(ServiceApiError)
+export const isServiceConfigError = Schema.is(ServiceConfigError)
 ```
+
+**Why Schema.TaggedError over Data.TaggedError:**
+
+- `Schema.is()` creates type guards automatically
+- Better integration with Schema validation
+- Enables serialization/deserialization of errors
+- See `specs/EFFECT_BEST_PRACTICES.md` for detailed patterns
 
 **Error naming:**
 

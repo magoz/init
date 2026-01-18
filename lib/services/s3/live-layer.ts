@@ -102,7 +102,8 @@ export class S3 extends Effect.Service<S3>()('@app/S3', {
         }
 
         const bytes = yield* Effect.tryPromise(() => body.transformToByteArray())
-        const buffer = Buffer.from(bytes as Uint8Array)
+        // Buffer.from accepts Uint8Array directly
+        const buffer = Buffer.from(bytes)
 
         yield* Effect.annotateCurrentSpan({
           's3.size': buffer.length

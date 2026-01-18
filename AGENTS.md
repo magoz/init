@@ -14,6 +14,20 @@ Next.js 16 App Router application with Effect-TS service architecture, Drizzle O
 - **Run `pnpm tsc` before finishing** - ensure types pass
 - **Run `pnpm lint` to check for errors** - fix any issues
 
+### Effect-TS Rules (Enforced by ESLint)
+
+| Rule                                            | Description                                           |
+| ----------------------------------------------- | ----------------------------------------------------- |
+| `local/no-disable-validation`                   | NEVER use `{ disableValidation: true }`               |
+| `local/no-catch-all-cause`                      | NEVER use `Effect.catchAllCause` - catches defects    |
+| `local/no-schema-from-self`                     | NEVER use `*FromSelf` schemas (use standard variants) |
+| `local/no-schema-decode-sync`                   | NEVER use sync decode/encode (throws exceptions)      |
+| `local/prefer-option-from-nullable`             | Use `Option.fromNullable()` instead of ternary        |
+| `@typescript-eslint/no-explicit-any`            | NEVER use `any` type                                  |
+| `@typescript-eslint/consistent-type-assertions` | NEVER use `as` type casts                             |
+
+See `specs/EFFECT_BEST_PRACTICES.md` for detailed explanations and alternatives.
+
 ## STRUCTURE
 
 ```
@@ -139,6 +153,16 @@ AppLayer
 - **Drizzle beta** - using `1.0.0-beta.11`, may have breaking changes
 - **No tests yet** - Vitest configured but no test files exist
 - Effect v4 migration: services designed for easy `Effect.Service` → `ServiceMap.Service` transition
+
+## SPECS
+
+Detailed conventions and patterns are documented in `specs/`:
+
+| Spec                                                         | Description                                              |
+| ------------------------------------------------------------ | -------------------------------------------------------- |
+| [EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md)   | Critical rules for Effect code                           |
+| [TYPESCRIPT_CONVENTIONS.md](specs/TYPESCRIPT_CONVENTIONS.md) | TypeScript patterns and eslint-disable justification     |
+| [EFFECT_TESTING.md](specs/EFFECT_TESTING.md)                 | Testing with @effect/vitest, TestClock, property testing |
 
 ## SUBDIRECTORY DOCS
 

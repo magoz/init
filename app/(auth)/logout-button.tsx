@@ -4,7 +4,7 @@ import { Slot } from '@radix-ui/react-slot'
 import { Button } from '@/components/ui/button'
 import { authClient } from '@/lib/services/auth/auth-client'
 import { cn } from '@/lib/utils'
-import { ComponentProps } from 'react'
+import type { ComponentProps } from 'react'
 
 type LogoutButtonProps = ComponentProps<typeof Button> & {
   asChild?: boolean

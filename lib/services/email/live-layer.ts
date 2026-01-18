@@ -1,8 +1,10 @@
-import {
-  Resend as ResendClient,
+import type {
   CreateEmailOptions,
   CreateEmailRequestOptions,
   CreateEmailResponseSuccess
+} from 'resend';
+import {
+  Resend as ResendClient
 } from 'resend'
 import { Config, Context, Effect, Layer, Redacted } from 'effect'
 import { EmailConfigError, SendEmailError } from './errors'

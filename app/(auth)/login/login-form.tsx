@@ -1,7 +1,8 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { FormEvent, useState, useTransition } from 'react'
+import type { FormEvent} from 'react';
+import { useState, useTransition } from 'react'
 import { LoaderCircleIcon } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
