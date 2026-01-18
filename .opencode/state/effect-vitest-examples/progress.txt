@@ -13,6 +13,10 @@ Started: 2026-01-18
 - Use `it.scopedLive` for real time + resources
 - TestClock: ALWAYS fork effects before TestClock.adjust (blocks forever otherwise)
 - Use `Effect.timeoutOption` for testable timeouts (returns Option), not `Effect.timeout` (throws)
+- Mock services: factory pattern `createMock*() => { layer, calls, ... }` for testability
+- layer() shares Layer across tests (state persists between tests in same block)
+- Nested it.layer() merges with parent (overrides services)
+- Use Effect.fail() not throw for errors in Effect.gen contexts
 
 ---
 
@@ -35,3 +39,9 @@ Started: 2026-01-18
 - Created lib/core/post/test-clock.test.ts with TestClock patterns
 - Files changed: lib/core/post/test-clock.test.ts, .opencode/state/effect-vitest-examples/prd.json
 - **Learnings:** CRITICAL - always fork effects before TestClock.adjust or they block forever. Use `Effect.timeoutOption` (returns Option) not `Effect.timeout` (throws TimeoutException). TestClock patterns: fork first, adjust clock, join fiber. Exponential backoff testing requires multiple adjust calls (100ms, then 200ms for 2^1 * 100).
+
+## Task - test-3
+
+- Created lib/core/post/layer-sharing.test.ts with layer() and nested it.layer() examples
+- Files changed: lib/core/post/layer-sharing.test.ts
+- **Learnings:** layer() creates describe block with shared Layer. Mock service pattern: create factory functions that return `{ layer, calls, posts }` for assertions. Nested it.layer() merges with parent layer (overrides services). Each layer() call gets isolated state. Use Effect.fail() not throw for errors in Effect.gen. Factory pattern better than trying to mock full Drizzle API.

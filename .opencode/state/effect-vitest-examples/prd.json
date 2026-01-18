@@ -45,7 +45,7 @@
         "Test demonstrates nested it.layer()",
         "Example shares mock Auth + Db across post tests"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "test-4",
