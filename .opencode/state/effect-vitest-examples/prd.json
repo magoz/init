@@ -57,7 +57,7 @@
         "Example captures Db calls for assertions",
         "Clear factory pattern for creating test implementations"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "test-5",

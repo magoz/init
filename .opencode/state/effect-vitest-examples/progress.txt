@@ -45,3 +45,9 @@ Started: 2026-01-18
 - Created lib/core/post/layer-sharing.test.ts with layer() and nested it.layer() examples
 - Files changed: lib/core/post/layer-sharing.test.ts
 - **Learnings:** layer() creates describe block with shared Layer. Mock service pattern: create factory functions that return `{ layer, calls, posts }` for assertions. Nested it.layer() merges with parent layer (overrides services). Each layer() call gets isolated state. Use Effect.fail() not throw for errors in Effect.gen. Factory pattern better than trying to mock full Drizzle API.
+
+## Task - test-4
+
+- Completed as part of test-3 (layer-sharing.test.ts already demonstrates all requirements)
+- Mock Auth returns test session/user, PostRepository uses in-memory storage, calls tracked, factory pattern established
+- **Learnings:** Task requirements fully satisfied by previous implementation.
