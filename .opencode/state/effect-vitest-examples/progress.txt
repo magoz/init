@@ -116,3 +116,17 @@ Started: 2026-01-18
   - Colocated tests easier to find and maintain than separate test directories
   - Mock strategy should use factory functions returning layer + test helpers
   - Integration tests need testcontainers for real database testing
+
+## Task - docs-2
+
+- Updated AGENTS.md with testing infrastructure information
+- Removed "No tests yet" note from NOTES section
+- Added "Add tests" row to WHERE TO LOOK table (lib/core/[domain]/*.test.ts)
+- Added specs/TESTING_STRATEGY.md to SPECS table
+- Added test command (pnpm test:run) to CRITICAL RULES section
+- Files changed: AGENTS.md
+- **Learnings:**
+  - AGENTS.md serves as the entry point for understanding the codebase
+  - WHERE TO LOOK table should cover all common development tasks including testing
+  - CRITICAL RULES should include test command to ensure quality gates
+  - SPECS table provides comprehensive documentation reference

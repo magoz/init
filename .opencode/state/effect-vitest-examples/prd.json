@@ -117,7 +117,7 @@
         "specs/TESTING_STRATEGY.md added to SPECS table",
         "Test commands documented in relevant section"
       ],
-      "passes": false
+      "passes": true
     }
   ],
   "context": {
