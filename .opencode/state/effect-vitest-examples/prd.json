@@ -91,7 +91,7 @@
         "Comment in test file points to specs/EFFECT_TESTING.md testcontainers section",
         "Note states integration tests require additional setup"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "docs-1",

@@ -13,6 +13,10 @@ import { UnauthenticatedError, NotFoundError } from '@/lib/core/errors'
  *
  * For property testing, see test-5 (it.prop).
  * For error testing patterns, see test-6 (Effect.either, Effect.exit).
+ *
+ * NOTE: This example uses mock services for unit testing. For integration tests
+ * against a real database, see the testcontainers section in specs/EFFECT_TESTING.md.
+ * Database integration tests require additional setup with @testcontainers/postgresql.
  */
 
 type Post = {
