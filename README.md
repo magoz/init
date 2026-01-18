@@ -37,11 +37,10 @@ A Next.js project starter with Effect-TS, designed to be cloned as the foundatio
 3. **Set up environment:**
 
    ```bash
-   cp .env.example .env.local  # Main env file for Next.js
-   cp .env.example .env        # For tools that expect .env (e.g., Drizzle)
+   cp .env.example .env.local
    ```
 
-   Both files are gitignored. Most variables go in `.env.local`, `.env` is for tool compatibility.
+   All environment variables go in `.env.local` (gitignored). Next.js and all CLI tools (Drizzle, Vitest, etc.) are configured to read from this file.
 
 4. **Run development server:**
    ```bash
