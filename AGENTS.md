@@ -158,11 +158,12 @@ AppLayer
 
 Detailed conventions and patterns are documented in `specs/`:
 
-| Spec                                                         | Description                                              |
-| ------------------------------------------------------------ | -------------------------------------------------------- |
-| [EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md)   | Critical rules for Effect code                           |
-| [TYPESCRIPT_CONVENTIONS.md](specs/TYPESCRIPT_CONVENTIONS.md) | TypeScript patterns and eslint-disable justification     |
-| [EFFECT_TESTING.md](specs/EFFECT_TESTING.md)                 | Testing with @effect/vitest, TestClock, property testing |
+| Spec                                                             | Description                                              |
+| ---------------------------------------------------------------- | -------------------------------------------------------- |
+| [EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md)       | Critical rules for Effect code                           |
+| [TYPESCRIPT_CONVENTIONS.md](specs/TYPESCRIPT_CONVENTIONS.md)     | TypeScript patterns and eslint-disable justification     |
+| [EFFECT_TESTING.md](specs/EFFECT_TESTING.md)                     | Testing with @effect/vitest, TestClock, property testing |
+| [USABILITY_BEST_PRACTICES.md](specs/USABILITY_BEST_PRACTICES.md) | UX patterns: auth, empty states, errors, forms, a11y     |
 
 ## SUBDIRECTORY DOCS
 
