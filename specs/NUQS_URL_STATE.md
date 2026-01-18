@@ -2,6 +2,32 @@
 
 This document defines patterns for lifting component state to the URL using nuqs. Use this for filters, search, pagination, and any user-controlled state that should be shareable and bookmarkable.
 
+## Critical Import Rule
+
+**NEVER mix `nuqs` and `nuqs/server` imports in server-side code.**
+
+```typescript
+// BAD - Will cause build failure
+import { createLoader } from 'nuqs/server'
+import { parseAsStringLiteral } from 'nuqs' // Client-only!
+
+// GOOD - All from nuqs/server for server files
+import { createLoader, parseAsStringLiteral } from 'nuqs/server'
+```
+
+| Context                                 | Import From   | Why                                          |
+| --------------------------------------- | ------------- | -------------------------------------------- |
+| `search-params.ts` (shared definitions) | `nuqs/server` | Used by server components via `createLoader` |
+| Server Components                       | `nuqs/server` | `loadSearchParams()` runs on server          |
+| Client Components                       | `nuqs`        | `useQueryState()` runs on client             |
+
+Build will fail with this error if you import from `nuqs` in server context:
+
+```
+Error: Attempted to call parseAsStringLiteral() from the server but
+parseAsStringLiteral is on the client.
+```
+
 ## When to Use URL State
 
 ```
@@ -430,6 +456,8 @@ export function Pagination({ totalPages }: Props) {
 | Server component read       | `nuqs/server` | `loadSearchParams()`       |
 | Client component read/write | `nuqs`        | `useQueryState()`          |
 | Multiple params at once     | `nuqs`        | `useQueryStates()`         |
+
+**Important:** The `search-params.ts` file must import ALL parsers from `nuqs/server`, even though they're also available from `nuqs`. This is because `createLoader` runs on the server.
 
 ## Key Principles
 

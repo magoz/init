@@ -25,25 +25,35 @@ Need webhook endpoints for external services?
 
 Load data directly in Server Components using Effect-TS. This is the **default pattern** for all read operations.
 
+> **Important:** For pages that require authentication, see `specs/PAGE_PATTERNS.md` for the required Suspense + Content pattern with `export const dynamic = 'force-dynamic'`.
+
 ### When to Use
 
 - Page initial render
 - Layout data (user session, navigation counts)
 - Any read-only data fetch
 
-### Pattern
+### Pattern (for authenticated pages)
 
 ```typescript
 // app/posts/page.tsx
+import { Suspense } from 'react'
 import { Effect, Match } from 'effect'
+import { cookies } from 'next/headers'
 import { AppLayer } from '@/lib/layers'
 import { NextEffect } from '@/lib/next-effect'
+import { getSession } from '@/lib/services/auth/get-session'
 import { getPosts } from '@/lib/core/post/get-posts'
 
-export default async function PostsPage() {
+export const dynamic = 'force-dynamic'
+
+async function Content() {
+  await cookies()
+
   return await NextEffect.runPromise(
     Effect.gen(function* () {
-      const posts = yield* getPosts()
+      const session = yield* getSession()
+      const posts = yield* getPosts({ userId: session.user.id })
 
       return (
         <div>
@@ -64,6 +74,14 @@ export default async function PostsPage() {
         onSuccess: Effect.succeed
       })
     )
+  )
+}
+
+export default async function PostsPage() {
+  return (
+    <Suspense fallback={<p>Loading...</p>}>
+      <Content />
+    </Suspense>
   )
 }
 ```

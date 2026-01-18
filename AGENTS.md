@@ -51,21 +51,21 @@ init/
 
 ## WHERE TO LOOK
 
-| Task                 | Location                        | Notes                                     |
-| -------------------- | ------------------------------- | ----------------------------------------- |
-| Add server action    | `lib/core/[domain]/*-action.ts` | One action per file, see DATA_ACCESS spec |
-| Add domain function  | `lib/core/[domain]/*.ts`        | Pure Effect functions for business logic  |
-| Add new service      | `lib/services/[name]/`          | Follow `lib/services/AGENTS.md` pattern   |
-| Add page with Effect | `app/*/page.tsx`                | Use `NextEffect.runPromise()` + RSC       |
-| Add API route        | `app/api/[route]/route.ts`      | Only for webhooks/external APIs           |
-| Add UI component     | `components/ui/`                | Uses Base UI, not Radix                   |
-| Add tests            | `lib/core/[domain]/*.test.ts`   | Colocated with source, use @effect/vitest |
-| Database schema      | `lib/services/db/schema.ts`     | Drizzle ORM                               |
-| Auth flow            | `app/(auth)/`                   | better-auth + OTP email                   |
-| Service dependencies | `lib/layers.ts`                 | AppLayer merges all services              |
-| Error types          | `lib/core/errors/index.ts`      | Shared domain errors                      |
-| File uploads         | `lib/core/file/*-action.ts`     | S3 signed URLs pattern                    |
-| URL state (filters)  | `app/*/search-params.ts`        | nuqs for search, filters, sorting         |
+| Task                 | Location                        | Notes                                       |
+| -------------------- | ------------------------------- | ------------------------------------------- |
+| Add server action    | `lib/core/[domain]/*-action.ts` | One action per file, see DATA_ACCESS spec   |
+| Add domain function  | `lib/core/[domain]/*.ts`        | Pure Effect functions for business logic    |
+| Add new service      | `lib/services/[name]/`          | Follow `lib/services/AGENTS.md` pattern     |
+| Add dynamic page     | `app/*/page.tsx`                | See PAGE_PATTERNS spec for Suspense pattern |
+| Add API route        | `app/api/[route]/route.ts`      | Only for webhooks/external APIs             |
+| Add UI component     | `components/ui/`                | Uses Base UI, not Radix                     |
+| Add tests            | `lib/core/[domain]/*.test.ts`   | Colocated with source, use @effect/vitest   |
+| Database schema      | `lib/services/db/schema.ts`     | Drizzle ORM                                 |
+| Auth flow            | `app/(auth)/`                   | better-auth + OTP email                     |
+| Service dependencies | `lib/layers.ts`                 | AppLayer merges all services                |
+| Error types          | `lib/core/errors/index.ts`      | Shared domain errors                        |
+| File uploads         | `lib/core/file/*-action.ts`     | S3 signed URLs pattern                      |
+| URL state (filters)  | `app/*/search-params.ts`        | nuqs/server imports only, see NUQS spec     |
 
 ## CODE MAP
 
@@ -127,18 +127,22 @@ export class ServiceName extends Effect.Service<ServiceName>()('@app/ServiceName
 
 ## ANTI-PATTERNS (THIS PROJECT)
 
-| Pattern                              | Correct Approach                                  |
-| ------------------------------------ | ------------------------------------------------- |
-| API routes for CRUD operations       | Server actions (`lib/core/[domain]/*-action.ts`)  |
-| Streaming files through server       | S3 signed URLs (client uploads directly to S3)    |
-| `process.env.X` with throws          | `yield* Config.string('X')`                       |
-| `router.push()` for logout           | `window.location.href = '/'` (layout cache issue) |
-| Barrel files (`index.ts` re-exports) | Import from `live-layer.ts` directly              |
-| `Effect.runPromise()` in pages       | `NextEffect.runPromise()` (handles redirects)     |
-| Layer `dependencies` option          | `Layer.provide()` externally (v4 compat)          |
-| Multiple services per directory      | One service per directory                         |
-| Multiple actions per file            | One action per file ending in `-action.ts`        |
-| `useState` for shareable UI state    | nuqs URL state (`app/*/search-params.ts`)         |
+| Pattern                               | Correct Approach                                      |
+| ------------------------------------- | ----------------------------------------------------- |
+| API routes for CRUD operations        | Server actions (`lib/core/[domain]/*-action.ts`)      |
+| Streaming files through server        | S3 signed URLs (client uploads directly to S3)        |
+| `process.env.X` with throws           | `yield* Config.string('X')`                           |
+| `router.push()` for logout            | `window.location.href = '/'` (layout cache issue)     |
+| Barrel files (`index.ts` re-exports)  | Import from `live-layer.ts` directly                  |
+| `Effect.runPromise()` in pages        | `NextEffect.runPromise()` (handles redirects)         |
+| Layer `dependencies` option           | `Layer.provide()` externally (v4 compat)              |
+| Multiple services per directory       | One service per directory                             |
+| Multiple actions per file             | One action per file ending in `-action.ts`            |
+| `useState` for shareable UI state     | nuqs URL state (`app/*/search-params.ts`)             |
+| Import `parseAs*` from `nuqs`         | Import from `nuqs/server` in search-params.ts         |
+| Direct data fetch in page component   | Suspense + Content pattern (see PAGE_PATTERNS spec)   |
+| Nested Suspense with async components | Single Content component fetches all data             |
+| Missing `export const dynamic`        | Add `export const dynamic = 'force-dynamic'` for auth |
 
 ## UNIQUE STYLES
 
@@ -212,6 +216,7 @@ Detailed conventions and patterns are documented in `specs/`:
 
 | Spec                                                             | Description                                              |
 | ---------------------------------------------------------------- | -------------------------------------------------------- |
+| [PAGE_PATTERNS.md](specs/PAGE_PATTERNS.md)                       | Suspense + Content pattern for dynamic/auth pages        |
 | [DATA_ACCESS_PATTERNS.md](specs/DATA_ACCESS_PATTERNS.md)         | RSC, Server Actions, S3 signed URLs - when to use each   |
 | [EFFECT_BEST_PRACTICES.md](specs/EFFECT_BEST_PRACTICES.md)       | Critical rules for Effect code                           |
 | [TYPESCRIPT_CONVENTIONS.md](specs/TYPESCRIPT_CONVENTIONS.md)     | TypeScript patterns and eslint-disable justification     |
