@@ -22,7 +22,7 @@
         "Test exists using it.scoped for resource cleanup",
         "Test exists using it.scopedLive"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "test-2",

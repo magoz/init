@@ -5,7 +5,12 @@ Started: 2026-01-18
 
 ## Codebase Patterns
 
-<!-- Consolidate reusable patterns here -->
+- Test files colocated with source: `*.test.ts` next to implementation files
+- Import test utils from `@effect/vitest` not `vitest`
+- Use `it.effect` for most tests (provides TestClock)
+- Use `it.live` when real time/IO needed
+- Use `it.scoped` for resource cleanup (acquireRelease)
+- Use `it.scopedLive` for real time + resources
 
 ---
 
@@ -16,3 +21,9 @@ Started: 2026-01-18
 - Installed @effect/vitest package
 - Files changed: package.json, pnpm-lock.yaml
 - **Learnings:** @effect/vitest doesn't need plugin in vitest.config.ts - just import `it` from '@effect/vitest' in test files. Peer dep warning about vitest 4.x vs 3.x is expected but compatible.
+
+## Task - test-1
+
+- Created lib/core/post/get-posts.test.ts with 4 test variants
+- Files changed: lib/core/post/get-posts.test.ts
+- **Learnings:** Each test variant has specific use case: it.effect (TestClock), it.live (real time), it.scoped (resources), it.scopedLive (both). Fork effects before TestClock.adjust to avoid blocking. Tests colocated with implementation files.
