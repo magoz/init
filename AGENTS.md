@@ -6,7 +6,7 @@
 
 ## OVERVIEW
 
-Next.js 16 App Router application with Effect-TS service architecture, Drizzle ORM (PostgreSQL/Neon), better-auth authentication, and Tailwind CSS 4.
+Next.js 16 App Router application with Effect-TS service architecture, Drizzle ORM (PostgreSQL/Neon), better-auth authentication, nuqs URL state management, and Tailwind CSS 4.
 
 ## CRITICAL RULES
 
@@ -63,6 +63,7 @@ init/
 | Service dependencies | `lib/layers.ts`                 | AppLayer merges all services              |
 | Error types          | `lib/core/errors/index.ts`      | Shared domain errors                      |
 | File uploads         | `lib/core/file/*-action.ts`     | S3 signed URLs pattern                    |
+| URL state (filters)  | `app/*/search-params.ts`        | nuqs for search, filters, sorting         |
 
 ## CODE MAP
 
@@ -84,6 +85,12 @@ init/
 - **No semicolons**
 - **No trailing commas**
 - Single quotes, 2-space indent, max 100 chars
+
+### File Naming
+
+- **All files use kebab-case** - `search-params.ts`, `post-list.tsx`, `live-layer.ts`
+- **Server actions** end in `-action.ts` - `delete-post-action.ts`
+- **URL state definitions** - `search-params.ts` in the route directory
 
 ### Effect-TS Service Pattern
 
@@ -129,6 +136,7 @@ export class ServiceName extends Effect.Service<ServiceName>()('@app/ServiceName
 | Layer `dependencies` option          | `Layer.provide()` externally (v4 compat)          |
 | Multiple services per directory      | One service per directory                         |
 | Multiple actions per file            | One action per file ending in `-action.ts`        |
+| `useState` for shareable UI state    | nuqs URL state (`app/*/search-params.ts`)         |
 
 ## UNIQUE STYLES
 
@@ -208,6 +216,7 @@ Detailed conventions and patterns are documented in `specs/`:
 | [TYPESCRIPT_CONVENTIONS.md](specs/TYPESCRIPT_CONVENTIONS.md)     | TypeScript patterns and eslint-disable justification     |
 | [EFFECT_TESTING.md](specs/EFFECT_TESTING.md)                     | Testing with @effect/vitest, TestClock, property testing |
 | [USABILITY_BEST_PRACTICES.md](specs/USABILITY_BEST_PRACTICES.md) | UX patterns: auth, empty states, errors, forms, a11y     |
+| [NUQS_URL_STATE.md](specs/NUQS_URL_STATE.md)                     | URL state for filters, search, sorting with nuqs         |
 
 ## SUBDIRECTORY DOCS
 

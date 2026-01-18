@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import { Toaster } from 'sonner'
 import './globals.css'
 import { Inter } from 'next/font/google'
@@ -18,7 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body className="antialiased">
-        {children}
+        <NuqsAdapter>{children}</NuqsAdapter>
         <Toaster />
       </body>
     </html>
