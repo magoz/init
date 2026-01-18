@@ -34,7 +34,7 @@
         "Test demonstrates retry with exponential backoff",
         "Comment explains why fork is required (blocks without it)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "test-3",

@@ -11,6 +11,8 @@ Started: 2026-01-18
 - Use `it.live` when real time/IO needed
 - Use `it.scoped` for resource cleanup (acquireRelease)
 - Use `it.scopedLive` for real time + resources
+- TestClock: ALWAYS fork effects before TestClock.adjust (blocks forever otherwise)
+- Use `Effect.timeoutOption` for testable timeouts (returns Option), not `Effect.timeout` (throws)
 
 ---
 
@@ -27,3 +29,9 @@ Started: 2026-01-18
 - Created lib/core/post/get-posts.test.ts with 4 test variants
 - Files changed: lib/core/post/get-posts.test.ts
 - **Learnings:** Each test variant has specific use case: it.effect (TestClock), it.live (real time), it.scoped (resources), it.scopedLive (both). Fork effects before TestClock.adjust to avoid blocking. Tests colocated with implementation files.
+
+## Task - test-2
+
+- Created lib/core/post/test-clock.test.ts with TestClock patterns
+- Files changed: lib/core/post/test-clock.test.ts, .opencode/state/effect-vitest-examples/prd.json
+- **Learnings:** CRITICAL - always fork effects before TestClock.adjust or they block forever. Use `Effect.timeoutOption` (returns Option) not `Effect.timeout` (throws TimeoutException). TestClock patterns: fork first, adjust clock, join fiber. Exponential backoff testing requires multiple adjust calls (100ms, then 200ms for 2^1 * 100).
