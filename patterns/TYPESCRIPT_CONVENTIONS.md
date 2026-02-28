@@ -2,6 +2,21 @@
 
 This document describes TypeScript configuration and coding conventions for this project.
 
+## Code Style (Prettier)
+
+- **No semicolons** (`semi: false`)
+- **No trailing commas** (`trailingComma: "none"`)
+- Single quotes, 2-space indent, max 100 chars
+- Arrow parens avoided (`arrowParens: "avoid"`)
+
+## File Naming
+
+- **All files use kebab-case** — `search-params.ts`, `post-list.tsx`, `live-layer.ts`
+- **Server actions** end in `-action.ts` — `delete-post-action.ts`
+- **URL state definitions** — `search-params.ts` in the route directory
+- **Service definitions** — `live-layer.ts` in the service directory
+- **Error definitions** — `errors.ts` colocated with service or domain
+
 ## Module Structure - Flat Modules, No Barrel Files
 
 **Avoid barrel files** (index.ts re-exports). Create flat, focused modules:

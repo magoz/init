@@ -1,11 +1,5 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-01-17
-**Commit:** 1753789
-**Branch:** main
-
-## OVERVIEW
-
 Next.js 16 App Router application with Effect-TS service architecture, Drizzle ORM (PostgreSQL/Neon), better-auth authentication, nuqs URL state management, and Tailwind CSS 4.
 
 ## CRITICAL RULES
@@ -36,110 +30,53 @@ See `patterns/EFFECT_BEST_PRACTICES.md` for detailed explanations and alternativ
 - **Patterns describe intent; code describes reality.** Check the codebase first before assuming something is/isn't implemented.
 - **Use patterns as guidance.** Follow patterns, types, and architecture defined in relevant files.
 
-## STRUCTURE
+## CAPABILITIES
 
-```
-init/
-├── app/                    # Next.js App Router pages
-│   ├── (auth)/             # Auth route group (login, OTP, auth-error, logout)
-│   ├── (dashboard)/        # Empty - future dashboard
-│   └── api/                # API routes (auth catch-all, example)
-├── components/ui/          # Modified shadcn/ui + custom components (see AGENTS.md)
-├── e2e/                    # Playwright E2E tests (api/, ui/, fixtures)
-├── eslint-local-rules/     # Custom ESLint rules for Effect-TS conventions
-├── lib/
-│   ├── services/           # Effect-TS service layer (see AGENTS.md)
-│   ├── core/               # Domain logic (each subfolder has own errors)
-│   ├── next-effect/        # Effect-TS/Next.js adapter
-│   ├── schemas/            # Validation schemas
-│   ├── layers.ts           # AppLayer composition
-│   └── utils.ts            # Utilities (cn helper)
-├── patterns/               # Architecture and convention docs (see patterns/README.md)
-├── instrumentation.ts      # Server-side Sentry + OTel
-└── instrumentation-client.ts # Client-side PostHog + Sentry
-```
+| Capability         | Service   | Details                                              |
+| ------------------ | --------- | ---------------------------------------------------- |
+| Authentication     | Auth      | Sign up, sign in, sign out, sessions, OTP email flow |
+| Database           | Db        | PostgreSQL via Drizzle ORM (Neon serverless)         |
+| Email sending      | Email     | Transactional email via Resend                       |
+| File upload/manage | S3        | Signed URLs, save, copy, list, delete (AWS S3)       |
+| Notifications      | Telegram  | Bot messages to configured chat                      |
+| Activity logging   | Activity  | User action logging via Telegram                     |
+| Observability      | Telemetry | OpenTelemetry spans + Sentry error tracking          |
+| URL state          | nuqs      | Shareable filters, search, pagination via URL params |
+| UI components      | shadcn/ui | Base UI primitives (not Radix), see `components/ui/` |
 
 ## WHERE TO LOOK
 
-| Task                 | Location                        | Notes                                        |
-| -------------------- | ------------------------------- | -------------------------------------------- |
-| Add server action    | `lib/core/[domain]/*-action.ts` | One action per file, see DATA_ACCESS pattern |
-| Add domain function  | `lib/core/[domain]/*.ts`        | Pure Effect functions for business logic     |
-| Add new service      | `lib/services/[name]/`          | Follow `lib/services/AGENTS.md` pattern      |
-| Add dynamic page     | `app/*/page.tsx`                | See PAGE_PATTERNS for Suspense pattern       |
-| Add API route        | `app/api/[route]/route.ts`      | Only for webhooks/external APIs              |
-| Add UI component     | `components/ui/`                | Uses Base UI, not Radix                      |
-| Add tests            | `lib/core/[domain]/*.test.ts`   | Colocated with source, use @effect/vitest    |
-| Database schema      | `lib/services/db/schema.ts`     | Drizzle ORM                                  |
-| Add E2E tests        | `e2e/`                          | Playwright tests (api/, ui/, fixtures)       |
-| Auth flow            | `app/(auth)/`                   | better-auth + OTP email                      |
-| Service dependencies | `lib/layers.ts`                 | AppLayer merges all services                 |
-| Error types          | `lib/core/errors/index.ts`      | Shared domain errors                         |
-| File uploads         | `lib/core/file/*-action.ts`     | S3 signed URLs pattern                       |
-| URL state (filters)  | `app/*/search-params.ts`        | nuqs/server imports only, see NUQS pattern   |
+| Task                 | Location                             | Notes                                        |
+| -------------------- | ------------------------------------ | -------------------------------------------- |
+| Add server action    | `lib/core/[domain]/*-action.ts`      | One action per file, see DATA_ACCESS pattern |
+| Add domain function  | `lib/core/[domain]/*.ts`             | Pure Effect functions for business logic     |
+| Add new service      | `lib/services/[name]/`               | Follow `lib/services/AGENTS.md` pattern      |
+| Add dynamic page     | `app/*/page.tsx`                     | See PAGE_PATTERNS for Suspense pattern       |
+| Add API route        | `app/api/[route]/route.ts`           | Only for webhooks/external APIs              |
+| Add UI component     | `components/ui/`                     | Uses Base UI, not Radix                      |
+| Add tests            | `lib/core/[domain]/*.test.ts`        | Colocated with source, use @effect/vitest    |
+| Add E2E tests        | `e2e/`                               | Playwright tests (api/, ui/, fixtures)       |
+| Database schema      | `lib/services/db/schema.ts`          | Drizzle ORM                                  |
+| Auth flow            | `app/(auth)/`                        | better-auth + OTP email                      |
+| Service dependencies | `lib/layers.ts`                      | AppLayer merges all services                 |
+| Error types          | `lib/core/errors/index.ts`           | Shared domain errors                         |
+| File uploads         | `lib/core/file/*-action.ts`          | S3 signed URLs pattern                       |
+| URL state (filters)  | `app/*/search-params.ts`             | nuqs/server imports only, see NUQS pattern   |
+| Code style & naming  | `patterns/TYPESCRIPT_CONVENTIONS.md` | Prettier, kebab-case, file naming            |
 
 ## CODE MAP
 
-| Symbol                  | Type     | Location                                 | Role                                       |
-| ----------------------- | -------- | ---------------------------------------- | ------------------------------------------ |
-| `AppLayer`              | Layer    | `lib/layers.ts:10`                       | Merged service layer for Effect pipelines  |
-| `NextEffect.runPromise` | Function | `lib/next-effect/index.ts`               | Handles redirects outside Effect context   |
-| `Auth`                  | Service  | `lib/services/auth/live-layer.ts`        | Authentication (sign in/up/out, sessions)  |
-| `Db`                    | Service  | `lib/services/db/live-layer.ts`          | Database (returns Drizzle client)          |
-| `Email`                 | Service  | `lib/services/email/live-layer.ts`       | Resend email sending                       |
-| `S3`                    | Service  | `lib/services/s3/live-layer.ts`          | AWS S3 file operations                     |
-| `Telegram`              | Service  | `lib/services/telegram/live-layer.ts`    | Telegram bot notifications                 |
-| `Activity`              | Service  | `lib/services/activity/live-layer.ts`    | Activity logging via Telegram              |
-| `TelemetryLayer`        | Layer    | `lib/services/telemetry/live-layer.ts:7` | OpenTelemetry + Sentry span/log processing |
-
-## CONVENTIONS
-
-### Code Style (Prettier)
-
-- **No semicolons**
-- **No trailing commas**
-- Single quotes, 2-space indent, max 100 chars
-
-### File Naming
-
-- **All files use kebab-case** - `search-params.ts`, `post-list.tsx`, `live-layer.ts`
-- **Server actions** end in `-action.ts` - `delete-post-action.ts`
-- **URL state definitions** - `search-params.ts` in the route directory
-
-### Effect-TS Service Pattern (v4)
-
-```typescript
-// Services use ServiceMap.Service with make + Layer.effect
-export class ServiceName extends ServiceMap.Service<ServiceName>()('@app/ServiceName', {
-  make: Effect.gen(function* () {
-    const config = yield* Config.string('VAR')
-    return {
-      /* service shape */
-    } as const
-  })
-}) {
-  static layer = Layer.effect(this, this.make).pipe(Layer.provide(ConfigLive))
-}
-```
-
-### Configuration
-
-- **Always** use `yield* Config.string('VAR')` or `yield* Config.redacted('SECRET')` inside `Effect.gen`
-- Config is `Yieldable` but NOT an `Effect` — cannot pipe with Effect operators directly
-- For error mapping, wrap the whole `Effect.gen` block
-- **Never** use `process.env` directly with throws
-
-### Observability
-
-- All service methods: `Effect.withSpan('Service.method')`
-- Error logging: `Effect.tapError()`
-- Span attributes: `Effect.annotateCurrentSpan()`
-
-### Imports
-
-- Use `@/` path alias for project imports
-- **No barrel files** - import directly from source files
-- Import services from `live-layer.ts` directly
+| Symbol                  | Type     | Location                               | Role                                       |
+| ----------------------- | -------- | -------------------------------------- | ------------------------------------------ |
+| `AppLayer`              | Layer    | `lib/layers.ts`                        | Merged service layer for Effect pipelines  |
+| `NextEffect.runPromise` | Function | `lib/next-effect/index.ts`             | Handles redirects outside Effect context   |
+| `Auth`                  | Service  | `lib/services/auth/live-layer.ts`      | Authentication (sign in/up/out, sessions)  |
+| `Db`                    | Service  | `lib/services/db/live-layer.ts`        | Database (returns Drizzle client)          |
+| `Email`                 | Service  | `lib/services/email/live-layer.ts`     | Resend email sending                       |
+| `S3`                    | Service  | `lib/services/s3/live-layer.ts`        | AWS S3 file operations                     |
+| `Telegram`              | Service  | `lib/services/telegram/live-layer.ts`  | Telegram bot notifications                 |
+| `Activity`              | Service  | `lib/services/activity/live-layer.ts`  | Activity logging via Telegram              |
+| `TelemetryLayer`        | Layer    | `lib/services/telemetry/live-layer.ts` | OpenTelemetry + Sentry span/log processing |
 
 ## ANTI-PATTERNS (THIS PROJECT)
 
@@ -163,64 +100,6 @@ export class ServiceName extends ServiceMap.Service<ServiceName>()('@app/Service
 | `yield* db.select().from(...)` no `.execute()`  | Always add `.execute()` to Drizzle queries            |
 | `Config.string('X').pipe(Effect.mapError(...))` | Yield Config directly, map errors on whole block      |
 
-## UNIQUE STYLES
-
-### Next.js + Effect Integration
-
-Pages use `NextEffect.runPromise()` which catches `RedirectError` and calls `redirect()` outside the Effect context. This is required because Next.js redirects must be called outside try-catch.
-
-### UI Components
-
-Uses **Base UI** (`@base-ui/react`) primitives instead of Radix UI. Components are shadcn-styled but built on a different foundation. See `components/ui/AGENTS.md`.
-
-### Service Dependency Hierarchy
-
-```
-AppLayer
-├── Auth.layer → Email.layer
-├── Db.layer
-├── S3.layer
-├── Telegram.layer
-├── Activity.layer → Telegram.layer
-└── TelemetryLayer
-```
-
-### Data Access Patterns
-
-See `patterns/DATA_ACCESS_PATTERNS.md` for full details. Summary:
-
-| Operation            | Pattern       | Location                                 |
-| -------------------- | ------------- | ---------------------------------------- |
-| Read data for pages  | RSC           | `app/*/page.tsx`                         |
-| Create/Update/Delete | Server Action | `lib/core/[domain]/*-action.ts`          |
-| File upload          | S3 signed URL | `lib/core/file/get-upload-url-action.ts` |
-| External webhooks    | API Route     | `app/api/webhooks/*/route.ts`            |
-
-**Server Action Pattern:**
-
-```typescript
-// lib/core/post/delete-post-action.ts
-'use server'
-
-export const deletePostAction = async (postId: Post['id']) => {
-  return await NextEffect.runPromise(
-    Effect.gen(function* () {
-      const session = yield* getSession()
-      yield* deletePost(postId)
-    }).pipe(
-      Effect.withSpan('action.post.delete'),
-      Effect.provide(AppLayer),
-      Effect.scoped,
-      Effect.catchTag('UnauthenticatedError', () => NextEffect.redirect('/login')),
-      Effect.tap(() => Effect.sync(() => revalidatePath('/posts'))),
-      Effect.catch(() =>
-        Effect.succeed({ _tag: 'Error' as const, message: 'Something went wrong' })
-      )
-    )
-  )
-}
-```
-
 ## NOTES
 
 - **No CI/CD configured** - deployment via Vercel auto-deploy
@@ -229,8 +108,10 @@ export const deletePostAction = async (postId: Post['id']) => {
 - **Drizzle beta** - using `1.0.0-beta.11`, may have breaking changes
 - Effect v4: services use `ServiceMap.Service`, errors use `catchTag` chains + `Effect.catch`
 - **LSP shows stale v3 errors** - always use `pnpm tsc` for accurate type checking
+- **NextEffect.runPromise** required because Next.js redirects must be called outside try-catch
 
 ## SUBDIRECTORY DOCS
 
-- `lib/services/AGENTS.md` - Effect-TS service architecture patterns
-- `components/ui/AGENTS.md` - UI component patterns and customizations
+- `patterns/README.md` - Architecture and convention patterns index
+- `lib/services/AGENTS.md` - Effect-TS service architecture, config, observability patterns
+- `components/ui/AGENTS.md` - UI component install sources and customizations
