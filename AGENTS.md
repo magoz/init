@@ -41,10 +41,12 @@ See `patterns/EFFECT_BEST_PRACTICES.md` for detailed explanations and alternativ
 ```
 init/
 ├── app/                    # Next.js App Router pages
-│   ├── (auth)/             # Auth route group (login, OTP, logout)
+│   ├── (auth)/             # Auth route group (login, OTP, auth-error, logout)
 │   ├── (dashboard)/        # Empty - future dashboard
 │   └── api/                # API routes (auth catch-all, example)
 ├── components/ui/          # Modified shadcn/ui + custom components (see AGENTS.md)
+├── e2e/                    # Playwright E2E tests (api/, ui/, fixtures)
+├── eslint-local-rules/     # Custom ESLint rules for Effect-TS conventions
 ├── lib/
 │   ├── services/           # Effect-TS service layer (see AGENTS.md)
 │   ├── core/               # Domain logic (each subfolder has own errors)
@@ -52,6 +54,7 @@ init/
 │   ├── schemas/            # Validation schemas
 │   ├── layers.ts           # AppLayer composition
 │   └── utils.ts            # Utilities (cn helper)
+├── patterns/               # Architecture and convention docs (see patterns/README.md)
 ├── instrumentation.ts      # Server-side Sentry + OTel
 └── instrumentation-client.ts # Client-side PostHog + Sentry
 ```
@@ -68,6 +71,7 @@ init/
 | Add UI component     | `components/ui/`                | Uses Base UI, not Radix                      |
 | Add tests            | `lib/core/[domain]/*.test.ts`   | Colocated with source, use @effect/vitest    |
 | Database schema      | `lib/services/db/schema.ts`     | Drizzle ORM                                  |
+| Add E2E tests        | `e2e/`                          | Playwright tests (api/, ui/, fixtures)       |
 | Auth flow            | `app/(auth)/`                   | better-auth + OTP email                      |
 | Service dependencies | `lib/layers.ts`                 | AppLayer merges all services                 |
 | Error types          | `lib/core/errors/index.ts`      | Shared domain errors                         |
@@ -76,16 +80,17 @@ init/
 
 ## CODE MAP
 
-| Symbol                  | Type     | Location                              | Role                                      |
-| ----------------------- | -------- | ------------------------------------- | ----------------------------------------- |
-| `AppLayer`              | Layer    | `lib/layers.ts:10`                    | Merged service layer for Effect pipelines |
-| `NextEffect.runPromise` | Function | `lib/next-effect/index.ts`            | Handles redirects outside Effect context  |
-| `Auth`                  | Service  | `lib/services/auth/live-layer.ts`     | Authentication (sign in/up/out, sessions) |
-| `Db`                    | Service  | `lib/services/db/live-layer.ts`       | Database (returns Drizzle client)         |
-| `Email`                 | Service  | `lib/services/email/live-layer.ts`    | Resend email sending                      |
-| `S3`                    | Service  | `lib/services/s3/live-layer.ts`       | AWS S3 file operations                    |
-| `Telegram`              | Service  | `lib/services/telegram/live-layer.ts` | Telegram bot notifications                |
-| `Activity`              | Service  | `lib/services/activity/live-layer.ts` | Activity logging via Telegram             |
+| Symbol                  | Type     | Location                                 | Role                                       |
+| ----------------------- | -------- | ---------------------------------------- | ------------------------------------------ |
+| `AppLayer`              | Layer    | `lib/layers.ts:10`                       | Merged service layer for Effect pipelines  |
+| `NextEffect.runPromise` | Function | `lib/next-effect/index.ts`               | Handles redirects outside Effect context   |
+| `Auth`                  | Service  | `lib/services/auth/live-layer.ts`        | Authentication (sign in/up/out, sessions)  |
+| `Db`                    | Service  | `lib/services/db/live-layer.ts`          | Database (returns Drizzle client)          |
+| `Email`                 | Service  | `lib/services/email/live-layer.ts`       | Resend email sending                       |
+| `S3`                    | Service  | `lib/services/s3/live-layer.ts`          | AWS S3 file operations                     |
+| `Telegram`              | Service  | `lib/services/telegram/live-layer.ts`    | Telegram bot notifications                 |
+| `Activity`              | Service  | `lib/services/activity/live-layer.ts`    | Activity logging via Telegram              |
+| `TelemetryLayer`        | Layer    | `lib/services/telemetry/live-layer.ts:7` | OpenTelemetry + Sentry span/log processing |
 
 ## CONVENTIONS
 
@@ -184,13 +189,12 @@ AppLayer
 
 See `patterns/DATA_ACCESS_PATTERNS.md` for full details. Summary:
 
-| Operation            | Pattern       | Location                                   |
-| -------------------- | ------------- | ------------------------------------------ |
-| Read data for pages  | RSC           | `app/*/page.tsx`                           |
-| Create/Update/Delete | Server Action | `lib/core/[domain]/*-action.ts`            |
-| File upload          | S3 signed URL | `lib/core/file/get-upload-url-action.ts`   |
-| File download        | S3 signed URL | `lib/core/file/get-download-url-action.ts` |
-| External webhooks    | API Route     | `app/api/webhooks/*/route.ts`              |
+| Operation            | Pattern       | Location                                 |
+| -------------------- | ------------- | ---------------------------------------- |
+| Read data for pages  | RSC           | `app/*/page.tsx`                         |
+| Create/Update/Delete | Server Action | `lib/core/[domain]/*-action.ts`          |
+| File upload          | S3 signed URL | `lib/core/file/get-upload-url-action.ts` |
+| External webhooks    | API Route     | `app/api/webhooks/*/route.ts`            |
 
 **Server Action Pattern:**
 

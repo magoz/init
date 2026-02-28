@@ -224,7 +224,7 @@ Effect.runPromise(program.pipe(Effect.provide(Auth.layer)))
 - [ ] Create directory: `lib/services/[name]/`
 - [ ] Create `live-layer.ts` with `ServiceMap.Service` + `make` pattern
 - [ ] Add static `layer` property (fully composed with all deps)
-- [ ] Create `errors.ts` with `Data.TaggedError` errors (if needed)
+- [ ] Create `errors.ts` with `Schema.TaggedError` errors (if needed)
 - [ ] Use `yield* Config.string(...)` for all environment variables
 - [ ] Add `Effect.withSpan()` to all methods
 - [ ] Add `Effect.annotateCurrentSpan()` for relevant attributes
