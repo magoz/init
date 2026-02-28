@@ -25,8 +25,8 @@ function process<T>(input: T): Result<T> { ... }
 const id = AccountId.make(rawId)
 const amount = Percentage.make(value)
 
-// CORRECT - use Schema.decodeUnknown for parsing
-const account = yield* Schema.decodeUnknown(Account)(data)
+// CORRECT - use Schema.decodeUnknownEffect for parsing
+const account = yield* Schema.decodeUnknownEffect(Account)(data)
 ```
 
 Using `any` defeats TypeScript's type system. Type casts (`x as Y`) bypass type checking and can hide bugs.
@@ -34,7 +34,7 @@ Using `any` defeats TypeScript's type system. Type casts (`x as Y`) bypass type 
 **AVOID `eslint-disable` comments** - Using disable comments should be an absolute last resort. Before adding one, exhaust ALL alternatives:
 
 1. Use `Schema.make()` for branded types
-2. Use `Schema.decodeUnknown()` for parsing unknown data
+2. Use `Schema.decodeUnknownEffect()` for parsing unknown data
 3. Use `Option.some<T>()` / `Option.none<T>()` for explicit Option types
 4. Use `identity<T>()` from `effect/Function` for compile-time type verification
 5. Use proper generics and type parameters
@@ -89,7 +89,7 @@ return identity<Effect.Effect<Result, MyError, Deps>>(someEffect)
 const accountType = row.account_type as AccountType
 
 // WRONG - using Schema.decode for simple type aliases (overkill)
-const accountType = yield * Schema.decodeUnknown(AccountType)(row.account_type)
+const accountType = yield * Schema.decodeUnknownEffect(AccountType)(row.account_type)
 
 // CORRECT - if the type is a simple string literal union, just use identity (if needed at all)
 const accountType = identity<AccountType>(row.account_type)
@@ -105,22 +105,22 @@ const account = {
 
 The key insight: if your database row type is properly defined, you don't need any cast. Only use `identity<T>()` when TypeScript can't infer the type correctly, and even then question if your types are set up right.
 
-### 2. NEVER Use `catchAll` When Error Type Is `never`
+### 2. NEVER Use `catch` When Error Type Is `never`
 
 ```typescript
 // If the effect never fails, error type is `never`
 const infallibleEffect: Effect.Effect<Result, never> = Effect.succeed(value)
 
-// WRONG - catchAll on never is useless and indicates misunderstanding
-infallibleEffect.pipe(Effect.catchAll(e => Effect.fail(new SomeError({ message: String(e) }))))
+// WRONG - catch on never is useless and indicates misunderstanding
+infallibleEffect.pipe(Effect.catch(e => Effect.fail(new SomeError({ message: String(e) }))))
 
 // CORRECT - if error is never, just use the effect directly
 infallibleEffect
 ```
 
-The `never` error type means the effect cannot fail. Adding `catchAll` to a `never` error is a code smell - it means either:
+The `never` error type means the effect cannot fail. Adding `catch` to a `never` error is a code smell - it means either:
 
-- The effect truly can't fail and catchAll is dead code
+- The effect truly can't fail and catch is dead code
 - The effect can fail but you're hiding errors with improper typing (often from using `any`)
 
 ### 3. NEVER Use Global `Error` in Effect Error Channel
@@ -201,22 +201,22 @@ const fetchAccount = (id: AccountId): Effect.Effect<Account, NotFoundError, Acco
 
 **Key insight**: If an operation can't fail and doesn't need dependencies or async, it's just a function. Don't wrap everything in Effect - use Effect for what it's good at (typed errors, dependency injection, async composition).
 
-### 6. NEVER Use `Effect.catchAllCause` to Wrap Errors - It Catches Defects
+### 6. NEVER Use `Effect.catchCause` to Wrap Errors - It Catches Defects
 
 ```typescript
-// WRONG - catchAllCause catches BOTH errors AND defects (bugs)
+// WRONG - catchCause catches BOTH errors AND defects (bugs)
 const wrapError =
   (operation: string) =>
   <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, ServiceError, R> =>
-    Effect.catchAllCause(effect, cause =>
+    Effect.catchCause(effect, cause =>
       Effect.fail(new ServiceError({ operation, cause: Cause.squash(cause) }))
     )
 
-// CORRECT - use catchAll to only catch expected errors, let defects propagate
+// CORRECT - use catch to only catch expected errors, let defects propagate
 const wrapError =
   (operation: string) =>
   <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E | ServiceError, R> =>
-    Effect.catchAll(effect, error => Effect.fail(new ServiceError({ operation, cause: error })))
+    Effect.catch(effect, error => Effect.fail(new ServiceError({ operation, cause: error })))
 
 // OR use mapError for simple error transformation
 const wrapError =
@@ -229,8 +229,8 @@ const wrapError =
 
 - **Errors** are expected failures (user not found, validation failed) - they should be handled
 - **Defects** are bugs (null pointer, division by zero) - they should crash and be fixed
-- `catchAllCause` catches both, hiding bugs that should be fixed
-- Use `catchAll` or `mapError` to transform only expected errors
+- `catchCause` catches both, hiding bugs that should be fixed
+- Use `catch` or `mapError` to transform only expected errors
 
 This is enforced by ESLint rule `local/no-catch-all-cause`.
 
@@ -403,7 +403,10 @@ Use `Schema.brand` to create type-safe IDs:
 import * as Schema from 'effect/Schema'
 
 // Define the branded type
-export const AccountId = Schema.NonEmptyTrimmedString.pipe(Schema.brand('AccountId'))
+export const AccountId = Schema.Trimmed.pipe(
+  Schema.check(Schema.isNonEmpty()),
+  Schema.brand('AccountId')
+)
 
 // Export the type
 export type AccountId = typeof AccountId.Type
@@ -417,31 +420,22 @@ const id = AccountId.make('acc_123')
 
 ### Never Use \*FromSelf Schemas
 
-**Never use `*FromSelf` schemas** like `Schema.OptionFromSelf`, `Schema.EitherFromSelf`, `Schema.ChunkFromSelf`, etc. These are for advanced use cases where you need to work with the runtime representation directly.
+**All `*FromSelf` schemas were removed in Effect v4.** In v3, variants like `Schema.OptionFromSelf`, `Schema.EitherFromSelf`, `Schema.ChunkFromSelf` expected runtime representations and didn't serialize to JSON properly. In v4, only the standard variants exist.
 
 ```typescript
-// WRONG - don't use *FromSelf variants
-export class Account extends Schema.Class<Account>('Account')({
-  id: AccountId,
-  parentId: Schema.OptionFromSelf(AccountId) // NO!
-}) {}
+// v3 (removed in v4) - these no longer exist
+Schema.OptionFromSelf(AccountId) // Does not exist
+Schema.EitherFromSelf(Schema.String, Schema.Number) // Does not exist
+Schema.BigIntFromSelf // Does not exist — use Schema.BigInt
 
-// CORRECT - use the standard variants
+// CORRECT - use the standard variants (same as v3)
 export class Account extends Schema.Class<Account>('Account')({
   id: AccountId,
-  parentId: Schema.Option(AccountId) // YES - encodes to JSON properly
+  parentId: Schema.Option(AccountId) // Encodes to JSON properly
 }) {}
 ```
 
-**Why:**
-
-- `Schema.Option(X)` encodes to `{ _tag: "Some", value: X } | { _tag: "None" }` - JSON serializable
-- `Schema.OptionFromSelf(X)` expects the runtime `Option` type - not JSON serializable
-- Same applies to `Either`, `Chunk`, `List`, `HashMap`, `HashSet`, etc.
-
-Use the standard schema variants for all domain models.
-
-This is enforced by ESLint rule `local/no-schema-from-self`.
+The ESLint rule `local/no-schema-from-self` catches any accidental use of stale v3 `*FromSelf` patterns.
 
 ### Schema.TaggedError for Domain Errors
 
@@ -495,8 +489,8 @@ import * as Schema from 'effect/Schema'
 
 export class Account extends Schema.Class<Account>('Account')({
   id: AccountId,
-  code: Schema.NonEmptyTrimmedString,
-  name: Schema.NonEmptyTrimmedString,
+  code: Schema.Trimmed.pipe(Schema.check(Schema.isNonEmpty())),
+  name: Schema.Trimmed.pipe(Schema.check(Schema.isNonEmpty())),
   type: Schema.Literal('Asset', 'Liability', 'Equity', 'Revenue', 'Expense'),
   normalBalance: Schema.Literal('Debit', 'Credit'),
   isActive: Schema.Boolean
@@ -562,18 +556,18 @@ import * as Effect from 'effect/Effect'
 // WRONG - throws exceptions
 const account = Schema.decodeUnknownSync(Account)(data) // DON'T DO THIS
 
-// CORRECT - returns Effect
-const accountEffect = Schema.decodeUnknown(Account)(data) // Effect<Account, ParseError>
+// CORRECT - returns Effect (v4: decodeUnknown → decodeUnknownEffect)
+const accountEffect = Schema.decodeUnknownEffect(Account)(data) // Effect<Account, ParseError>
 
 // Usage in Effect.gen
 const program = Effect.gen(function* () {
-  const account = yield* Schema.decodeUnknown(Account)(data)
+  const account = yield* Schema.decodeUnknownEffect(Account)(data)
   // account is now typed as Account
   return account
 })
 
 // For encoding
-const encoded = yield * Schema.encode(Account)(account) // Effect<AccountEncoded, ParseError>
+const encoded = yield * Schema.encodeEffect(Account)(account) // Effect<AccountEncoded, ParseError>
 ```
 
 ---
@@ -726,103 +720,102 @@ const handleError = Match.type<AccountError>().pipe(
 
 ---
 
-## Service Pattern (Context.Tag + Layer)
+## Service Pattern (ServiceMap.Service + Layer)
 
 ```typescript
-import * as Context from 'effect/Context'
-import * as Layer from 'effect/Layer'
-import * as Effect from 'effect/Effect'
+import { Effect, Layer, ServiceMap, Config } from 'effect'
 
-// Service interface
-export interface AccountService {
-  readonly findById: (id: AccountId) => Effect.Effect<Account, AccountNotFound>
-  readonly findAll: () => Effect.Effect<ReadonlyArray<Account>>
-  readonly create: (account: Account) => Effect.Effect<Account, PersistenceError>
+// Service with make: constructor logic is part of the class definition
+export class AccountService extends ServiceMap.Service<AccountService>()('@app/AccountService', {
+  make: Effect.gen(function* () {
+    const db = yield* Db
+    const connectionString = yield* Config.string('DATABASE_URL')
+
+    return {
+      findById: (id: AccountId): Effect.Effect<Account, AccountNotFound> =>
+        Effect.gen(function* () {
+          const rows = yield* db.query(/* ... */)
+          // ...
+        }),
+      findAll: (): Effect.Effect<ReadonlyArray<Account>> =>
+        Effect.gen(function* () {
+          // ...
+        }),
+      create: (account: Account): Effect.Effect<Account, PersistenceError> =>
+        Effect.gen(function* () {
+          // ...
+        })
+    } as const
+  })
+}) {
+  // Layer using Layer.effect(this, this.make) — no this.Default in v4
+  static layer = Layer.effect(this, this.make).pipe(Layer.provide(Db.layer))
 }
-
-// Service tag
-export class AccountService extends Context.Tag('AccountService')<
-  AccountService,
-  AccountService
->() {}
 ```
 
-### Creating Layers - Use Layer.effect or Layer.scoped
+### Layer Pattern
 
-**Avoid** `Layer.succeed` and `Tag.of` - they're rarely needed.
-
-**Layer.effect** - When the service creation is effectful but doesn't need cleanup:
+**Use `Layer.effect(this, this.make)`** — there is no `this.Default` in v4.
 
 ```typescript
-// make function returns Effect<AccountService, Error, Dependencies>
-const make = Effect.gen(function* () {
-  const config = yield* Config
-  const db = yield* Db
+// Simple service
+export class MyService extends ServiceMap.Service<MyService>()('@app/MyService', {
+  make: Effect.gen(function* () {
+    return {
+      /* service shape */
+    } as const
+  })
+}) {
+  static layer = Layer.effect(this, this.make)
+}
 
-  return {
-    findById: id =>
-      Effect.gen(function* () {
-        const rows = yield* db.query(/* ... */)
-        // ...
-      }),
-    findAll: () =>
-      Effect.gen(function* () {
-        // ...
-      }),
-    create: account =>
-      Effect.gen(function* () {
-        // ...
-      })
-  }
-})
-
-// Layer using Layer.effect
-export const AccountServiceLive: Layer.Layer<AccountService, ConfigError, Config | Db> =
-  Layer.effect(AccountService, make)
+// Service with dependencies
+export class AccountService extends ServiceMap.Service<AccountService>()('@app/AccountService', {
+  make: Effect.gen(function* () {
+    const db = yield* Db
+    return {
+      /* service shape */
+    } as const
+  })
+}) {
+  static layer = Layer.effect(this, this.make).pipe(Layer.provide(Db.layer))
+}
 ```
 
 **Layer.scoped** - When the service needs resource cleanup (subscriptions, background fibers, etc.):
 
 ```typescript
 // Example: Service with a PubSub for change notifications
-const make = Effect.gen(function* () {
-  const db = yield* Db
+export class NotificationService extends ServiceMap.Service<NotificationService>()(
+  '@app/NotificationService',
+  {
+    make: Effect.gen(function* () {
+      const db = yield* Db
 
-  // Create a PubSub that will be cleaned up when layer is released
-  const changes = yield* PubSub.unbounded<AccountChange>()
+      // Create a PubSub that will be cleaned up when layer is released
+      const changes = yield* PubSub.unbounded<AccountChange>()
 
-  // Start a background fiber that will be interrupted on cleanup
-  yield* Effect.forkScoped(
-    db
-      .subscribe('account_changes')
-      .pipe(Stream.runForEach(change => PubSub.publish(changes, change)))
-  )
+      // Start a background fiber that will be interrupted on cleanup
+      yield* Effect.forkScoped(
+        db
+          .subscribe('account_changes')
+          .pipe(Stream.runForEach(change => PubSub.publish(changes, change)))
+      )
 
-  return {
-    findById: id =>
-      Effect.gen(function* () {
-        // ...
-      }),
-    subscribe: PubSub.subscribe(changes)
+      return {
+        subscribe: PubSub.subscribe(changes)
+      } as const
+    })
   }
-})
-
-// Layer using Layer.scoped - cleans up PubSub and background fiber
-export const AccountServiceLive: Layer.Layer<AccountService, DbError, Db> = Layer.scoped(
-  AccountService,
-  make
-)
+) {
+  // Layer.scoped cleans up PubSub and background fiber
+  static layer = Layer.scoped(this, this.make).pipe(Layer.provide(Db.layer))
+}
 ```
 
 **Composing layers:**
 
 ```typescript
-// Provide dependencies to a layer
-export const AccountServiceWithDeps = AccountServiceLive.pipe(
-  Layer.provide(DbLive),
-  Layer.provide(ConfigLive)
-)
-
-// Or use Layer.provideMerge to keep dependencies in context
-export const FullLayer = Layer.provideMerge(AccountServiceLive, DbLive)
+// Provide dependencies externally with Layer.provide
+export const AppLayer = Layer.mergeAll(AccountService.layer, NotificationService.layer, Db.layer)
 ```

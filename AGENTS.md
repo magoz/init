@@ -223,7 +223,7 @@ export const deletePostAction = async (postId: Post['id']) => {
 - **React Compiler enabled** - automatic memoization (experimental)
 - **PostHog proxied** - requests via `/ph/*` rewrites to bypass ad-blockers
 - **Drizzle beta** - using `1.0.0-beta.11`, may have breaking changes
-- Effect v4 migration: services designed for easy `Effect.Service` → `ServiceMap.Service` transition
+- Effect v4: services use `ServiceMap.Service`, errors use `catchTag` chains + `Effect.catch`
 - **LSP shows stale v3 errors** - always use `pnpm tsc` for accurate type checking
 
 ## SUBDIRECTORY DOCS

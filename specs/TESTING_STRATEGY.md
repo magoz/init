@@ -243,12 +243,11 @@ For detailed Effect testing patterns, see:
 
 Key patterns from EFFECT_TESTING.md:
 
-- `it.effect` - most tests (provides TestClock)
-- `it.live` - real time/IO needed
-- `it.scoped` - resource cleanup (acquireRelease)
+- `it.effect` - most tests (provides TestClock + Scope)
+- `it.live` - real time/IO needed (also provides Scope)
 - TestClock - fork before adjust (blocks forever otherwise)
 - Property testing - `it.prop([Schema])` for invariants
-- Error testing - `Effect.either`, `Effect.exit`, `Effect.catchTag`
+- Error testing - `Effect.result`, `Effect.exit`, `Effect.catchTag`
 - Mock services - factory pattern with layer sharing
 
 ## Anti-Patterns
@@ -269,7 +268,7 @@ Key patterns from EFFECT_TESTING.md:
 
 See test files for working examples:
 
-- `lib/core/post/get-posts.test.ts` - Test variants (it.effect, it.live, it.scoped)
+- `lib/core/post/get-posts.test.ts` - Test variants (it.effect, it.live)
 - `lib/core/post/test-clock.test.ts` - TestClock patterns (fork, timeout, retry)
 - `lib/core/post/layer-sharing.test.ts` - Mock services with layer()
 - `lib/core/post/property-testing.test.ts` - Property-based testing

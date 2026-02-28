@@ -14,32 +14,34 @@ Import from `@effect/vitest` for Effect-aware testing:
 
 ```typescript
 import { describe, expect, it, layer } from '@effect/vitest'
-import { Effect, TestClock, Fiber, Duration } from 'effect'
+import { Effect, Fiber, Duration } from 'effect'
+import * as TestClock from 'effect/testing/TestClock'
 ```
 
 ---
 
 ## Test Variants
 
-| Method          | TestServices | Scope | Use Case                              |
-| --------------- | ------------ | ----- | ------------------------------------- |
-| `it.effect`     | TestClock    | No    | Most tests - deterministic time       |
-| `it.live`       | Real clock   | No    | Tests needing real time/IO            |
-| `it.scoped`     | TestClock    | Yes   | Tests with resources (acquireRelease) |
-| `it.scopedLive` | Real clock   | Yes   | Real time + resources                 |
+| Method      | TestServices | Scope | Use Case                        |
+| ----------- | ------------ | ----- | ------------------------------- |
+| `it.effect` | TestClock    | Yes   | Most tests - deterministic time |
+| `it.live`   | Real clock   | Yes   | Tests needing real time/IO      |
 
-### it.effect - Use for Most Tests (with TestClock)
+> **v4 change:** `it.scoped` and `it.scopedLive` were removed. `it.effect` and `it.live` now provide Scope automatically, so `acquireRelease` resources are cleaned up without needing a separate variant.
 
-`it.effect` provides a `TestClock` that you control. Time doesn't pass unless you advance it.
+### it.effect - Use for Most Tests (with TestClock + Scope)
+
+`it.effect` provides a `TestClock` that you control. Time doesn't pass unless you advance it. Scope is provided automatically.
 
 ```typescript
 import { it, expect } from '@effect/vitest'
-import { Effect, TestClock, Fiber, Duration } from 'effect'
+import { Effect, Fiber, Duration } from 'effect'
+import * as TestClock from 'effect/testing/TestClock'
 
 it.effect('processes after delay', () =>
   Effect.gen(function* () {
-    // Fork the effect that uses time
-    const fiber = yield* Effect.fork(
+    // Fork the effect that uses time (v4: fork → forkChild)
+    const fiber = yield* Effect.forkChild(
       Effect.sleep(Duration.minutes(5)).pipe(Effect.map(() => 'done'))
     )
 
@@ -65,10 +67,12 @@ it.live('calls external API', () =>
 )
 ```
 
-### it.scoped - Use When Tests Need Resource Cleanup
+### Resource Cleanup (automatic in v4)
+
+In v4, `it.effect` and `it.live` both provide Scope automatically. No separate `it.scoped` needed.
 
 ```typescript
-it.scoped('manages resources correctly', () =>
+it.effect('manages resources correctly', () =>
   Effect.gen(function* () {
     // acquireRelease resources are automatically cleaned up
     const resource = yield* Effect.acquireRelease(Effect.succeed({ connection: 'open' }), r =>
@@ -81,25 +85,11 @@ it.scoped('manages resources correctly', () =>
 )
 ```
 
-### it.scopedLive - Real Time + Resources
-
-```typescript
-it.scopedLive('real time with resources', () =>
-  Effect.gen(function* () {
-    const resource = yield* Effect.acquireRelease(
-      Effect.succeed({ started: Date.now() }),
-      () => Effect.void
-    )
-
-    yield* Effect.sleep(Duration.millis(50)) // Actually waits
-    // ...
-  })
-)
-```
-
 ---
 
 ## TestClock Patterns
+
+> **v4 change:** TestClock is imported from `effect/testing/TestClock`, not from `effect`.
 
 ### Always Fork Effects That Sleep
 
@@ -114,10 +104,10 @@ it.effect('broken test', () =>
   })
 )
 
-// CORRECT - fork first, then adjust
+// CORRECT - fork first, then adjust (v4: fork → forkChild)
 it.effect('timeout test', () =>
   Effect.gen(function* () {
-    const fiber = yield* Effect.fork(
+    const fiber = yield* Effect.forkChild(
       Effect.sleep(Duration.seconds(30)).pipe(Effect.timeout(Duration.seconds(10)))
     )
 
@@ -150,7 +140,7 @@ it.effect('retries with exponential backoff', () =>
       })
     )
 
-    const fiber = yield* Effect.fork(effect)
+    const fiber = yield* Effect.forkChild(effect)
 
     // First retry after 100ms
     yield* TestClock.adjust(Duration.millis(100))
@@ -172,12 +162,10 @@ it.effect('runs scheduled task', () =>
     const results: number[] = []
 
     const scheduled = Effect.sync(() => results.push(Date.now())).pipe(
-      Effect.repeat(
-        Schedule.fixed(Duration.seconds(1)).pipe(Schedule.intersect(Schedule.recurs(3)))
-      )
+      Effect.repeat(Schedule.fixed(Duration.seconds(1)).pipe(Schedule.both(Schedule.recurs(3))))
     )
 
-    const fiber = yield* Effect.fork(scheduled)
+    const fiber = yield* Effect.forkChild(scheduled)
 
     // Advance through 3 intervals
     yield* TestClock.adjust(Duration.seconds(1))
@@ -203,7 +191,7 @@ import { Auth } from '@/lib/services/auth/live-layer'
 import { Db } from '@/lib/services/db/live-layer'
 
 // Create a test layer
-const TestLayer = Layer.mergeAll(Auth.Live, Db.Live)
+const TestLayer = Layer.mergeAll(Auth.layer, Db.layer)
 
 layer(TestLayer)('Auth Service', it => {
   it.effect('finds user by id', () =>
@@ -237,7 +225,7 @@ layer(TestLayer)('Auth Service', it => {
 ### Use Real Clock Even with Layer
 
 ```typescript
-layer(MyService.Live, { timeout: '30 seconds' })('live tests', it => {
+layer(MyService.layer, { timeout: '30 seconds' })('live tests', it => {
   it.live('uses real time', () =>
     Effect.gen(function* () {
       yield* Effect.sleep(Duration.millis(10)) // Actually waits
@@ -250,11 +238,13 @@ layer(MyService.Live, { timeout: '30 seconds' })('live tests', it => {
 
 ## Property-Based Testing
 
-FastCheck is re-exported from `effect/FastCheck`. The `Arbitrary` module provides `Arbitrary.make()` to create arbitraries from Schema. @effect/vitest provides `it.prop` and `it.effect.prop` for property testing.
+FastCheck is re-exported from `effect/FastCheck`. Use `Schema.toArbitrary()` to create arbitraries from Schema. @effect/vitest provides `it.prop` and `it.effect.prop` for property testing.
+
+> **v4 change:** `Arbitrary.make(schema)` → `Schema.toArbitrary(schema)`
 
 ```typescript
 import { it, expect } from '@effect/vitest'
-import { Effect, FastCheck, Schema, Arbitrary } from 'effect'
+import { Effect, Schema } from 'effect'
 
 // Synchronous property test - array syntax
 it.prop('addition is commutative', [Schema.Number, Schema.Number], ([a, b]) => a + b === b + a)
@@ -274,14 +264,6 @@ it.effect.prop('async symmetry', [Schema.Number, Schema.Number], ([a, b]) =>
   })
 )
 
-// Scoped property test
-it.scoped.prop('substring detection', { a: Schema.String, b: Schema.String }, ({ a, b }) =>
-  Effect.gen(function* () {
-    yield* Effect.scope
-    return (a + b).includes(b)
-  })
-)
-
 // With custom fastCheck options
 it.effect.prop('[custom runs]', [Schema.Number], ([n]) => Effect.succeed(n === n), {
   fastCheck: { numRuns: 200 }
@@ -291,18 +273,18 @@ it.effect.prop('[custom runs]', [Schema.Number], ([n]) => Effect.succeed(n === n
 ### Creating Arbitraries from Schema
 
 ```typescript
-import { Arbitrary, Schema } from 'effect'
+import { Schema } from 'effect'
 
 // Define your domain schema
 export class User extends Schema.Class<User>('User')({
   id: Schema.String,
-  name: Schema.NonEmptyTrimmedString,
+  name: Schema.Trimmed.pipe(Schema.check(Schema.isNonEmpty())),
   age: Schema.Number.pipe(Schema.int(), Schema.between(0, 150)),
-  email: Schema.String.pipe(Schema.pattern(/^[^@]+@[^@]+\.[^@]+$/))
+  email: Schema.String.pipe(Schema.check(Schema.isPattern(/^[^@]+@[^@]+\.[^@]+$/)))
 }) {}
 
-// Create arbitrary from Schema
-const userArb = Arbitrary.make(User)
+// Create arbitrary from Schema (v4: Arbitrary.make → Schema.toArbitrary)
+const userArb = Schema.toArbitrary(User)
 
 it.prop('user validation', [userArb], ([user]) => {
   // user is guaranteed to be a valid User
@@ -315,7 +297,7 @@ it.prop('user validation', [userArb], ([user]) => {
 ### Testing Domain Invariants
 
 ```typescript
-import { Arbitrary, Schema } from 'effect'
+import { Schema } from 'effect'
 
 // Money must always have positive amount and valid currency
 export class Money extends Schema.Class<Money>('Money')({
@@ -333,7 +315,7 @@ export class Money extends Schema.Class<Money>('Money')({
   }
 }
 
-const moneyArb = Arbitrary.make(Money)
+const moneyArb = Schema.toArbitrary(Money)
 
 it.prop('money addition is associative', [moneyArb, moneyArb, moneyArb], ([a, b, c]) => {
   // Only test if currencies match
@@ -354,16 +336,16 @@ it.prop('money addition is associative', [moneyArb, moneyArb, moneyArb], ([a, b,
 Create test implementations of services for isolated unit tests:
 
 ```typescript
-import { Layer, Effect, Context } from 'effect'
+import { Layer, Effect, ServiceMap } from 'effect'
 import { it, expect } from '@effect/vitest'
 
-// Production service
-export class EmailService extends Context.Tag('EmailService')<
+// Production service (v4: ServiceMap.Service)
+class EmailService extends ServiceMap.Service<
   EmailService,
   {
     readonly send: (to: string, subject: string, body: string) => Effect.Effect<void>
   }
->() {}
+>()('@app/EmailService') {}
 
 // Test implementation that captures calls
 const createMockEmailService = () => {
@@ -404,7 +386,7 @@ For integration tests against a real database, use testcontainers to spin up iso
 
 ```typescript
 // test/utils.ts
-import { Effect, Layer, Data, Redacted } from 'effect'
+import { Effect, Layer, Data, Redacted, ServiceMap } from 'effect'
 import { PostgreSqlContainer } from '@testcontainers/postgresql'
 
 // Error type for container failures
@@ -412,9 +394,9 @@ export class ContainerError extends Data.TaggedError('ContainerError')<{
   cause: unknown
 }> {}
 
-// Container as Effect.Service with scoped lifecycle
-export class PgContainer extends Effect.Service<PgContainer>()('test/PgContainer', {
-  scoped: Effect.acquireRelease(
+// Container as ServiceMap.Service with scoped lifecycle
+export class PgContainer extends ServiceMap.Service<PgContainer>()('test/PgContainer', {
+  make: Effect.acquireRelease(
     Effect.tryPromise({
       try: () => new PostgreSqlContainer('postgres:alpine').start(),
       catch: cause => new ContainerError({ cause })
@@ -423,7 +405,7 @@ export class PgContainer extends Effect.Service<PgContainer>()('test/PgContainer
   )
 }) {
   // Layer that provides database connection from the container
-  static ClientLive = Layer.unwrapEffect(
+  static ClientLayer = Layer.unwrapEffect(
     Effect.gen(function* () {
       const container = yield* PgContainer
       // Return your database client layer using container.getConnectionUri()
@@ -431,7 +413,7 @@ export class PgContainer extends Effect.Service<PgContainer>()('test/PgContainer
         connectionString: container.getConnectionUri()
       })
     })
-  ).pipe(Layer.provide(this.Default))
+  ).pipe(Layer.provide(Layer.scoped(this, this.make)))
 }
 ```
 
@@ -443,8 +425,8 @@ import { Effect } from 'effect'
 import { PgContainer } from './utils'
 import { Db } from '@/lib/services/db/live-layer'
 
-// Use it.layer with 30s timeout (container startup is slow)
-layer(PgContainer.ClientLive, { timeout: '30 seconds' })('Database Tests', it => {
+// Use layer() with 30s timeout (container startup is slow)
+layer(PgContainer.ClientLayer, { timeout: '30 seconds' })('Database Tests', it => {
   it.effect('creates and retrieves user', () =>
     Effect.gen(function* () {
       const db = yield* Db
@@ -552,7 +534,7 @@ import { Layer, Effect } from 'effect'
 import { inject } from 'vitest'
 import { Db } from '@/lib/services/db/live-layer'
 
-export const SharedDbLive = Layer.effect(
+export const SharedDbLayer = Layer.effect(
   Db,
   Effect.gen(function* () {
     const url = inject('dbUrl')
@@ -568,20 +550,21 @@ export const SharedDbLive = Layer.effect(
 ### Testing That Effects Fail
 
 ```typescript
+// Pattern 1: Effect.result (v4: Effect.either → Effect.result)
 it.effect('fails with NotFound for missing user', () =>
   Effect.gen(function* () {
     const auth = yield* Auth
 
-    const result = yield* auth.findUser('nonexistent').pipe(Effect.either)
+    const result = yield* auth.findUser('nonexistent').pipe(Effect.result)
 
-    expect(result._tag).toBe('Left')
-    if (result._tag === 'Left') {
-      expect(result.left._tag).toBe('UserNotFound')
+    expect(result._tag).toBe('Failure')
+    if (result._tag === 'Failure') {
+      expect(result.failure._tag).toBe('UserNotFound')
     }
   })
 )
 
-// Or use Effect.exit for more control
+// Pattern 2: Effect.exit for Cause inspection
 it.effect('exits with expected error', () =>
   Effect.gen(function* () {
     const auth = yield* Auth
@@ -590,9 +573,12 @@ it.effect('exits with expected error', () =>
 
     expect(exit._tag).toBe('Failure')
     if (exit._tag === 'Failure') {
-      const error = Cause.failureOption(exit.cause)
-      expect(Option.isSome(error)).toBe(true)
-      expect(error.value._tag).toBe('UserNotFound')
+      // v4: Cause is flattened — use findErrorOption
+      const error = Cause.findErrorOption(exit.cause)
+      expect(error._tag).toBe('Some')
+      if (error._tag === 'Some') {
+        expect(error.value._tag).toBe('UserNotFound')
+      }
     }
   })
 )

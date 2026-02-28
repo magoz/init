@@ -20,14 +20,14 @@ Wrap data-fetching code in a `Content` component inside `Suspense`, and explicit
 1. **`export const dynamic = 'force-dynamic'`** - Opt out of static generation
 2. **`await cookies()`** - Called at start of Content to ensure dynamic rendering
 3. **`<Suspense>` wrapper** - Provides loading state during server render
-4. **`Effect.matchEffect`** - Typed error handling with redirects
+4. **`catchTag` chains + `catch` catch-all** - Typed error handling with redirects
 
 ## Pattern: Basic Dynamic Page
 
 ```typescript
 // app/(dashboard)/posts/page.tsx
 import { Suspense } from 'react'
-import { Effect, Match } from 'effect'
+import { Effect, Layer } from 'effect'
 import { cookies } from 'next/headers'
 import { NextEffect } from '@/lib/next-effect'
 import { AppLayer } from '@/lib/layers'
@@ -53,28 +53,24 @@ async function Content() {
     }).pipe(
       Effect.provide(AppLayer),
       Effect.scoped,
-      Effect.matchEffect({
-        onFailure: error =>
-          Match.value(error._tag).pipe(
-            Match.when('UnauthenticatedError', () => NextEffect.redirect('/login')),
-            Match.orElse(() =>
-              Effect.succeed(
-                <div className="p-6">
-                  <p>Something went wrong.</p>
-                  <p className="text-red-500">Error: {error.message}</p>
-                </div>
-              )
-            )
-          ),
-        onSuccess: Effect.succeed
-      })
+      Effect.catchTag('UnauthenticatedError', () => NextEffect.redirect('/login')),
+      Effect.catch(error =>
+        Effect.succeed(
+          <div className="p-6">
+            <p>Something went wrong.</p>
+            <p className="text-red-500">
+              Error: {error instanceof Error ? error.message : 'Unknown error'}
+            </p>
+          </div>
+        )
+      )
     )
   )
 }
 
 export default async function PostsPage() {
   return (
-    <Suspense fallback={<p className="p-6">Laddar...</p>}>
+    <Suspense fallback={<p className="p-6">Loading...</p>}>
       <Content />
     </Suspense>
   )
@@ -88,7 +84,7 @@ When using nuqs for filters/search, pass searchParams to Content:
 ```typescript
 // app/(dashboard)/posts/page.tsx
 import { Suspense } from 'react'
-import { Effect, Match } from 'effect'
+import { Effect, Layer } from 'effect'
 import { cookies } from 'next/headers'
 import type { SearchParams } from 'nuqs/server'
 import { NextEffect } from '@/lib/next-effect'
@@ -129,28 +125,24 @@ async function Content({ searchParams }: { searchParams: Promise<SearchParams> }
     }).pipe(
       Effect.provide(AppLayer),
       Effect.scoped,
-      Effect.matchEffect({
-        onFailure: error =>
-          Match.value(error._tag).pipe(
-            Match.when('UnauthenticatedError', () => NextEffect.redirect('/login')),
-            Match.orElse(() =>
-              Effect.succeed(
-                <div className="p-6">
-                  <p>Something went wrong.</p>
-                  <p className="text-red-500">Error: {error.message}</p>
-                </div>
-              )
-            )
-          ),
-        onSuccess: Effect.succeed
-      })
+      Effect.catchTag('UnauthenticatedError', () => NextEffect.redirect('/login')),
+      Effect.catch(error =>
+        Effect.succeed(
+          <div className="p-6">
+            <p>Something went wrong.</p>
+            <p className="text-red-500">
+              Error: {error instanceof Error ? error.message : 'Unknown error'}
+            </p>
+          </div>
+        )
+      )
     )
   )
 }
 
 export default async function PostsPage({ searchParams }: Props) {
   return (
-    <Suspense fallback={<p className="p-6">Laddar...</p>}>
+    <Suspense fallback={<p className="p-6">Loading...</p>}>
       <Content searchParams={searchParams} />
     </Suspense>
   )
@@ -185,21 +177,17 @@ async function Content() {
     }).pipe(
       Effect.provide(AppLayer),
       Effect.scoped,
-      Effect.matchEffect({
-        onFailure: error =>
-          Match.value(error._tag).pipe(
-            Match.when('UnauthenticatedError', () => NextEffect.redirect('/login')),
-            Match.orElse(() =>
-              Effect.succeed(
-                <div className="p-6">
-                  <p>Something went wrong.</p>
-                  <p className="text-red-500">Error: {error.message}</p>
-                </div>
-              )
-            )
-          ),
-        onSuccess: Effect.succeed
-      })
+      Effect.catchTag('UnauthenticatedError', () => NextEffect.redirect('/login')),
+      Effect.catch(error =>
+        Effect.succeed(
+          <div className="p-6">
+            <p>Something went wrong.</p>
+            <p className="text-red-500">
+              Error: {error instanceof Error ? error.message : 'Unknown error'}
+            </p>
+          </div>
+        )
+      )
     )
   )
 }
@@ -248,21 +236,17 @@ async function Content() {
     }).pipe(
       Effect.provide(AppLayer),
       Effect.scoped,
-      Effect.matchEffect({
-        onFailure: error =>
-          Match.value(error._tag).pipe(
-            Match.when('UnauthenticatedError', () => NextEffect.redirect('/login')),
-            Match.orElse(() =>
-              Effect.succeed(
-                <div className="p-6">
-                  <p>Something went wrong.</p>
-                  <p className="text-red-500">Error: {error.message}</p>
-                </div>
-              )
-            )
-          ),
-        onSuccess: Effect.succeed
-      })
+      Effect.catchTag('UnauthenticatedError', () => NextEffect.redirect('/login')),
+      Effect.catch(error =>
+        Effect.succeed(
+          <div className="p-6">
+            <p>Something went wrong.</p>
+            <p className="text-red-500">
+              Error: {error instanceof Error ? error.message : 'Unknown error'}
+            </p>
+          </div>
+        )
+      )
     )
   )
 }
@@ -376,28 +360,29 @@ return await NextEffect.runPromise(
 
 ## Error Handling Pattern
 
-Always use `Effect.matchEffect` with typed error tags:
+Use `catchTag` chains with a `catch` catch-all:
 
 ```typescript
-Effect.matchEffect({
-  onFailure: error =>
-    Match.value(error._tag).pipe(
-      // Auth errors -> redirect to login
-      Match.when('UnauthenticatedError', () => NextEffect.redirect('/login')),
-      // Permission errors -> redirect to home
-      Match.when('UnauthorizedError', () => NextEffect.redirect('/')),
-      // All other errors -> show error UI
-      Match.orElse(() =>
-        Effect.succeed(
-          <div className="p-6">
-            <p>Something went wrong.</p>
-            <p className="text-red-500">Error: {error.message}</p>
-          </div>
-        )
-      )
-    ),
-  onSuccess: Effect.succeed
-})
+// Error handling: catchTag for specific errors, catch for everything else
+.pipe(
+  Effect.provide(AppLayer),
+  Effect.scoped,
+  // Auth errors -> redirect to login
+  Effect.catchTag('UnauthenticatedError', () => NextEffect.redirect('/login')),
+  // Permission errors -> redirect to home
+  Effect.catchTag('UnauthorizedError', () => NextEffect.redirect('/')),
+  // All other errors -> show error UI
+  Effect.catch(error =>
+    Effect.succeed(
+      <div className="p-6">
+        <p>Something went wrong.</p>
+        <p className="text-red-500">
+          Error: {error instanceof Error ? error.message : 'Unknown error'}
+        </p>
+      </div>
+    )
+  )
+)
 ```
 
 ## Checklist for New Pages
@@ -405,7 +390,7 @@ Effect.matchEffect({
 - [ ] Add `export const dynamic = 'force-dynamic'` at top of file
 - [ ] Create `Content` async function with `await cookies()` as first line
 - [ ] Wrap Content in `<Suspense>` with appropriate fallback
-- [ ] Use `Effect.matchEffect` for error handling
+- [ ] Use `catchTag` chains + `catch` catch-all for error handling
 - [ ] Handle `UnauthenticatedError` with redirect to `/login`
 - [ ] Fetch all data in single Effect pipeline (no nested async components)
 - [ ] Pass data to client components as props
@@ -418,5 +403,5 @@ Effect.matchEffect({
 | `await cookies()`         | Signal dynamic rendering to Next.js        |
 | `<Suspense>` wrapper      | Provide loading state                      |
 | `NextEffect.runPromise()` | Handle redirects outside Effect context    |
-| `Effect.matchEffect`      | Typed error handling with clean redirects  |
+| `catchTag` + `catch`      | Typed error handling with clean redirects  |
 | Single Content component  | Avoid nested async server component issues |

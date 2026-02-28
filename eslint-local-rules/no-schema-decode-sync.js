@@ -3,6 +3,9 @@
  *
  * Sync variants throw exceptions. Use the Effect variants that return
  * Effect<A, ParseError> for proper error handling.
+ *
+ * v4 note: The Effect variants were renamed (e.g. decodeUnknown → decodeUnknownEffect),
+ * but the sync variants still exist with the same names.
  */
 
 const SYNC_METHODS = [
@@ -39,9 +42,9 @@ export const noSchemaDecodeSync = {
           SYNC_METHODS.includes(node.property.name)
         ) {
           const name = node.property.name
-          let alternative = name.replace('Sync', '')
+          let alternative = name.replace('Sync', 'Effect')
           if (name === 'asserts') {
-            alternative = 'is (for type guards) or decodeUnknown (for validation)'
+            alternative = 'is (for type guards) or decodeUnknownEffect (for validation)'
           }
 
           context.report({

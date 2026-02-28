@@ -38,7 +38,7 @@ Load data directly in Server Components using Effect-TS. This is the **default p
 ```typescript
 // app/posts/page.tsx
 import { Suspense } from 'react'
-import { Effect, Match } from 'effect'
+import { Effect, Layer } from 'effect'
 import { cookies } from 'next/headers'
 import { AppLayer } from '@/lib/layers'
 import { NextEffect } from '@/lib/next-effect'
@@ -65,14 +65,10 @@ async function Content() {
     }).pipe(
       Effect.provide(AppLayer),
       Effect.scoped,
-      Effect.matchEffect({
-        onFailure: error =>
-          Match.value(error._tag).pipe(
-            Match.when('UnauthenticatedError', () => NextEffect.redirect('/login')),
-            Match.orElse(() => Effect.succeed(<ErrorMessage error={error} />))
-          ),
-        onSuccess: Effect.succeed
-      })
+      Effect.catchTag('UnauthenticatedError', () => NextEffect.redirect('/login')),
+      Effect.catch(error =>
+        Effect.succeed(<ErrorMessage error={error} />)
+      )
     )
   )
 }
@@ -101,7 +97,12 @@ export const getPosts = () =>
     const { user } = yield* getSession()
     const db = yield* Db
 
-    const posts = yield* db.select().from(schema.post).where(eq(schema.post.userId, user.id))
+    // Always add .execute() to Drizzle queries in v4
+    const posts = yield* db
+      .select()
+      .from(schema.post)
+      .where(eq(schema.post.userId, user.id))
+      .execute()
 
     return posts
   }).pipe(Effect.withSpan('Post.getPosts'))
@@ -135,7 +136,7 @@ lib/core/[domain]/
 // lib/core/post/delete-post-action.ts
 'use server'
 
-import { Effect, Match } from 'effect'
+import { Effect } from 'effect'
 import { revalidatePath } from 'next/cache'
 import { AppLayer } from '@/lib/layers'
 import { NextEffect } from '@/lib/next-effect'
@@ -162,20 +163,15 @@ export const deletePostAction = async (postId: Post['id']) => {
       }),
       Effect.provide(AppLayer),
       Effect.scoped,
-      Effect.matchEffect({
-        onFailure: error =>
-          Match.value(error._tag).pipe(
-            Match.when('UnauthenticatedError', () => NextEffect.redirect('/login')),
-            Match.when('UnauthorizedError', () => NextEffect.redirect('/')),
-            Match.orElse(() =>
-              Effect.succeed({
-                _tag: 'Error' as const,
-                message: `Something went wrong: ${error.message}`
-              })
-            )
-          ),
-        onSuccess: () => Effect.sync(() => revalidatePath('/posts'))
-      })
+      Effect.catchTag('UnauthenticatedError', () => NextEffect.redirect('/login')),
+      Effect.catchTag('UnauthorizedError', () => NextEffect.redirect('/')),
+      Effect.tap(() => Effect.sync(() => revalidatePath('/posts'))),
+      Effect.catch(() =>
+        Effect.succeed({
+          _tag: 'Error' as const,
+          message: 'Something went wrong'
+        })
+      )
     )
   )
 }
@@ -225,16 +221,10 @@ Server actions should return one of:
 
 ```typescript
 // Success with revalidation (most common for mutations)
-Effect.matchEffect({
-  onFailure: error => /* ... */,
-  onSuccess: () => Effect.sync(() => revalidatePath('/posts'))
-})
+Effect.tap(() => Effect.sync(() => revalidatePath('/posts')))
 
 // Success with data return
-Effect.matchEffect({
-  onFailure: error => /* ... */,
-  onSuccess: data => Effect.succeed({ _tag: 'Success' as const, data })
-})
+Effect.map(post => ({ _tag: 'Success' as const, post }))
 ```
 
 ## Pattern 3: S3 Signed URLs for File Operations
@@ -256,7 +246,7 @@ Use Server Actions to generate signed URLs, then upload/download directly from t
 // lib/core/document/get-upload-url-action.ts
 'use server'
 
-import { Effect, Match } from 'effect'
+import { Effect } from 'effect'
 import { AppLayer } from '@/lib/layers'
 import { NextEffect } from '@/lib/next-effect'
 import { getSession } from '@/lib/services/auth/get-session'
@@ -294,19 +284,13 @@ export const getUploadUrlAction = async (input: UploadUrlInput) => {
       }),
       Effect.provide(AppLayer),
       Effect.scoped,
-      Effect.matchEffect({
-        onFailure: error =>
-          Match.value(error._tag).pipe(
-            Match.when('UnauthenticatedError', () => NextEffect.redirect('/login')),
-            Match.orElse(() =>
-              Effect.succeed({
-                _tag: 'Error' as const,
-                message: 'Failed to generate upload URL'
-              })
-            )
-          ),
-        onSuccess: Effect.succeed
-      })
+      Effect.catchTag('UnauthenticatedError', () => NextEffect.redirect('/login')),
+      Effect.catch(() =>
+        Effect.succeed({
+          _tag: 'Error' as const,
+          message: 'Failed to generate upload URL'
+        })
+      )
     )
   )
 }
@@ -318,7 +302,7 @@ export const getUploadUrlAction = async (input: UploadUrlInput) => {
 // lib/core/document/save-document-action.ts
 'use server'
 
-import { Effect, Match } from 'effect'
+import { Effect } from 'effect'
 import { revalidatePath } from 'next/cache'
 import { AppLayer } from '@/lib/layers'
 import { NextEffect } from '@/lib/next-effect'
@@ -337,11 +321,14 @@ export const saveDocumentAction = async (input: SaveDocumentInput) => {
       const session = yield* getSession()
       const db = yield* Db
 
-      yield* db.insert(schema.document).values({
-        name: input.name,
-        fileUrl: input.fileUrl,
-        uploadedBy: session.user.id
-      })
+      yield* db
+        .insert(schema.document)
+        .values({
+          name: input.name,
+          fileUrl: input.fileUrl,
+          uploadedBy: session.user.id
+        })
+        .execute()
     }).pipe(
       Effect.withSpan('action.document.save', {
         attributes: {
@@ -350,19 +337,14 @@ export const saveDocumentAction = async (input: SaveDocumentInput) => {
       }),
       Effect.provide(AppLayer),
       Effect.scoped,
-      Effect.matchEffect({
-        onFailure: error =>
-          Match.value(error._tag).pipe(
-            Match.when('UnauthenticatedError', () => NextEffect.redirect('/login')),
-            Match.orElse(() =>
-              Effect.succeed({
-                _tag: 'Error' as const,
-                message: 'Failed to save document'
-              })
-            )
-          ),
-        onSuccess: () => Effect.sync(() => revalidatePath('/documents'))
-      })
+      Effect.catchTag('UnauthenticatedError', () => NextEffect.redirect('/login')),
+      Effect.tap(() => Effect.sync(() => revalidatePath('/documents'))),
+      Effect.catch(() =>
+        Effect.succeed({
+          _tag: 'Error' as const,
+          message: 'Failed to save document'
+        })
+      )
     )
   )
 }
@@ -449,7 +431,7 @@ For private files that need temporary access:
 // lib/core/document/get-download-url-action.ts
 'use server'
 
-import { Effect, Match } from 'effect'
+import { Effect } from 'effect'
 import { AppLayer } from '@/lib/layers'
 import { NextEffect } from '@/lib/next-effect'
 import { getSession } from '@/lib/services/auth/get-session'
@@ -469,19 +451,13 @@ export const getDownloadUrlAction = async (fileUrl: string) => {
       Effect.withSpan('action.document.getDownloadUrl'),
       Effect.provide(AppLayer),
       Effect.scoped,
-      Effect.matchEffect({
-        onFailure: error =>
-          Match.value(error._tag).pipe(
-            Match.when('UnauthenticatedError', () => NextEffect.redirect('/login')),
-            Match.orElse(() =>
-              Effect.succeed({
-                _tag: 'Error' as const,
-                message: 'Failed to generate download URL'
-              })
-            )
-          ),
-        onSuccess: Effect.succeed
-      })
+      Effect.catchTag('UnauthenticatedError', () => NextEffect.redirect('/login')),
+      Effect.catch(() =>
+        Effect.succeed({
+          _tag: 'Error' as const,
+          message: 'Failed to generate download URL'
+        })
+      )
     )
   )
 }
@@ -505,29 +481,26 @@ Only use API routes when:
 
 ```typescript
 // app/api/webhooks/stripe/route.ts
-import { Effect, Match } from 'effect'
-import { HttpApp, HttpServerResponse } from '@effect/platform'
-import { ManagedRuntime } from 'effect'
+import * as HttpServerResponse from 'effect/unstable/http/HttpServerResponse'
+import * as HttpEffect from 'effect/unstable/http/HttpEffect'
+import { Effect } from 'effect'
 import { AppLayer } from '@/lib/layers'
 import { handleStripeWebhook } from '@/lib/core/billing/handle-stripe-webhook'
+
+export const dynamic = 'force-dynamic'
 
 const postHandler = Effect.gen(function* () {
   yield* handleStripeWebhook()
   return yield* HttpServerResponse.json({ received: true })
 }).pipe(
-  Effect.catchAll(error =>
-    Match.value(error).pipe(
-      Match.tag('WebhookVerificationError', () =>
-        HttpServerResponse.json({ error: 'Invalid signature' }, { status: 400 })
-      ),
-      Match.orElse(() => HttpServerResponse.json({ error: 'Internal error' }, { status: 500 }))
-    )
-  )
+  Effect.catchTag('WebhookVerificationError', () =>
+    HttpServerResponse.json({ error: 'Invalid signature' }, { status: 400 })
+  ),
+  Effect.catch(() => HttpServerResponse.json({ error: 'Internal error' }, { status: 500 }))
 )
 
-const managedRuntime = ManagedRuntime.make(AppLayer)
-const runtime = await managedRuntime.runtime()
-const effectHandler = HttpApp.toWebHandlerRuntime(runtime)(postHandler)
+// v4: HttpApp.toWebHandlerRuntime → HttpEffect.toWebHandlerLayer
+const { handler: effectHandler } = HttpEffect.toWebHandlerLayer(postHandler, AppLayer)
 
 export const POST = (request: Request) => effectHandler(request)
 ```
@@ -550,5 +523,5 @@ export const POST = (request: Request) => effectHandler(request)
 2. **One action per file** - Easier to find, test, and maintain
 3. **Use `revalidatePath`** - Keep UI in sync after mutations
 4. **Always use `NextEffect.runPromise`** - Handles redirects correctly
-5. **Consistent error handling** - Return typed error objects for client handling
+5. **Consistent error handling** - `catchTag` chains + `catch` catch-all (not `matchEffect`)
 6. **S3 for all files** - Never stream files through your server

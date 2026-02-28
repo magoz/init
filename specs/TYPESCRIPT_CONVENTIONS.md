@@ -23,16 +23,15 @@ lib/services/
 
 ```typescript
 // live-layer.ts - everything related to the service in one file
-import { Effect, Layer, Config } from 'effect'
+import { Effect, Layer, Config, ServiceMap } from 'effect'
 import { AuthError } from './errors'
 
-export class Auth extends Effect.Service<Auth>()('@app/Auth', {
-  effect: Effect.gen(function* () {
+export class Auth extends ServiceMap.Service<Auth>()('@app/Auth', {
+  make: Effect.gen(function* () {
     // ...
   })
 }) {
-  static layer = this.Default
-  static Live = this.layer.pipe(Layer.provide(AuthConfigLive))
+  static layer = Layer.effect(this, this.make).pipe(Layer.provide(AuthConfigLayer))
 }
 ```
 
@@ -138,14 +137,14 @@ const id = rawId as AccountId
 const id = AccountId.make(rawId)
 ```
 
-### 2. Schema.decodeUnknown() for Parsing
+### 2. Schema.decodeUnknownEffect() for Parsing
 
 ```typescript
 // WRONG
 const user = data as User
 
 // CORRECT
-const user = yield * Schema.decodeUnknown(User)(data)
+const user = yield * Schema.decodeUnknownEffect(User)(data)
 ```
 
 ### 3. Option.some<T>() / Option.none<T>() for Options

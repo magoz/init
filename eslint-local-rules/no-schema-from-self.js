@@ -1,9 +1,11 @@
 /**
  * @fileoverview Disallow *FromSelf schema variants
  *
- * Schema variants like OptionFromSelf, EitherFromSelf, ChunkFromSelf expect
- * runtime representations and don't serialize to JSON properly.
- * Use the standard variants (Option, Either, Chunk) instead.
+ * In v3, *FromSelf variants (OptionFromSelf, EitherFromSelf, etc.) expected
+ * runtime representations and didn't serialize to JSON properly.
+ *
+ * In v4, all *FromSelf schemas were removed entirely. This rule catches
+ * accidental use of stale v3 code or copy-pasted examples.
  */
 
 const FROM_SELF_SCHEMAS = [
@@ -17,7 +19,11 @@ const FROM_SELF_SCHEMAS = [
   'CauseFromSelf',
   'ExitFromSelf',
   'FiberIdFromSelf',
-  'DurationFromSelf'
+  'DurationFromSelf',
+  'BigIntFromSelf',
+  'SymbolFromSelf',
+  'URLFromSelf',
+  'RedactedFromSelf'
 ]
 
 /** @type {import('eslint').Rule.RuleModule} */
@@ -25,13 +31,13 @@ export const noSchemaFromSelf = {
   meta: {
     type: 'problem',
     docs: {
-      description: 'Disallow *FromSelf schema variants - use standard variants instead',
+      description: 'Disallow *FromSelf schema variants - removed in Effect v4',
       category: 'Best Practices',
       recommended: true
     },
     messages: {
       noFromSelf:
-        'Avoid Schema.{{name}} - use Schema.{{alternative}} instead for JSON serialization. See specs/EFFECT_BEST_PRACTICES.md'
+        'Schema.{{name}} does not exist in Effect v4. Use Schema.{{alternative}} instead. See specs/EFFECT_BEST_PRACTICES.md'
     },
     schema: []
   },
