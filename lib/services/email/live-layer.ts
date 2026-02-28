@@ -2,37 +2,32 @@ import type {
   CreateEmailOptions,
   CreateEmailRequestOptions,
   CreateEmailResponseSuccess
-} from 'resend';
-import {
-  Resend as ResendClient
 } from 'resend'
-import { Config, Context, Effect, Layer, Redacted } from 'effect'
+import { Resend as ResendClient } from 'resend'
+import { Config, Effect, Layer, Redacted, ServiceMap } from 'effect'
 import { EmailConfigError, SendEmailError } from './errors'
 
 export { EmailConfigError, SendEmailError }
 
 // Configuration service (internal)
-class EmailConfig extends Context.Tag('@app/EmailConfig')<
+class EmailConfig extends ServiceMap.Service<
   EmailConfig,
   {
     readonly apiKey: Redacted.Redacted<string>
   }
->() {}
+>()('@app/EmailConfig') {}
 
 const EmailConfigLive = Layer.effect(
   EmailConfig,
   Effect.gen(function* () {
-    const apiKey = yield* Config.redacted('RESEND_API_KEY').pipe(
-      Effect.mapError(() => new EmailConfigError({ message: 'RESEND_API_KEY not found' }))
-    )
+    const apiKey = yield* Config.redacted('RESEND_API_KEY')
     return { apiKey }
-  })
+  }).pipe(Effect.mapError(() => new EmailConfigError({ message: 'RESEND_API_KEY not found' })))
 )
 
 // Service definition
-// v4 migration: Change Effect.Service to ServiceMap.Service
-export class Email extends Effect.Service<Email>()('@app/Email', {
-  effect: Effect.gen(function* () {
+export class Email extends ServiceMap.Service<Email>()('@app/Email', {
+  make: Effect.gen(function* () {
     const config = yield* EmailConfig
     const resendClient = new ResendClient(Redacted.value(config.apiKey))
 
@@ -74,9 +69,5 @@ export class Email extends Effect.Service<Email>()('@app/Email', {
     return { sendEmail } as const
   })
 }) {
-  // Base layer (has unsatisfied EmailConfig dependency)
-  static layer = this.Default
-
-  // Composed layer with all dependencies satisfied
-  static Live = this.layer.pipe(Layer.provide(EmailConfigLive))
+  static layer = Layer.effect(this, this.make).pipe(Layer.provide(EmailConfigLive))
 }

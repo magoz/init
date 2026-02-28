@@ -3,7 +3,7 @@
 import { test as base } from '@playwright/test'
 import type { APIRequestContext } from '@playwright/test'
 import { Effect } from 'effect'
-import type { TestData } from './utils/setup';
+import type { TestData } from './utils/setup'
 import { createTestSetup } from './utils/setup'
 
 type WorkerFixtures = {
@@ -20,7 +20,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   testData: [
     async ({}, use: (data: TestData) => Promise<void>) => {
       console.log('🔧 Setting up shared test data')
-      const result = await Effect.runPromise(createTestSetup())
+      const result = await Effect.runPromise(createTestSetup().pipe(Effect.orDie))
 
       await use(result)
 

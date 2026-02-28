@@ -7,7 +7,7 @@ async function getAuthHandler() {
     Effect.gen(function* () {
       const authService = yield* Auth
       return authService.auth
-    }).pipe(Effect.provide(Auth.Live), Effect.scoped)
+    }).pipe(Effect.provide(Auth.layer), Effect.scoped)
   )
 }
 

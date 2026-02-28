@@ -1,6 +1,6 @@
 'use server'
 
-import { Effect, Match } from 'effect'
+import { Effect } from 'effect'
 import { AppLayer } from '@/lib/layers'
 import { NextEffect } from '@/lib/next-effect'
 import { getSession } from '@/lib/services/auth/get-session'
@@ -43,19 +43,11 @@ export const deleteFileAction = async (fileUrl: string) => {
       }),
       Effect.provide(AppLayer),
       Effect.scoped,
-      Effect.matchEffect({
-        onFailure: error =>
-          Match.value(error._tag).pipe(
-            Match.when('UnauthenticatedError', () => NextEffect.redirect('/login')),
-            Match.orElse(() =>
-              Effect.succeed({
-                _tag: 'Error' as const,
-                message: 'Failed to delete file'
-              })
-            )
-          ),
-        onSuccess: () => Effect.succeed({ _tag: 'Success' as const })
-      })
+      Effect.catchTag('UnauthenticatedError', () => NextEffect.redirect('/login')),
+      Effect.map(() => ({ _tag: 'Success' as const })),
+      Effect.catch(() =>
+        Effect.succeed({ _tag: 'Error' as const, message: 'Failed to delete file' })
+      )
     )
   )
 }

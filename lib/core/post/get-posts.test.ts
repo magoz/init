@@ -1,25 +1,33 @@
 import { describe, expect, it } from '@effect/vitest'
-import { Effect, Duration, TestClock, Fiber } from 'effect'
+import { Effect, Duration, Fiber } from 'effect'
+import * as TestClock from 'effect/testing/TestClock'
 
 /**
  * Demonstrates @effect/vitest test variants
  *
  * These are minimal examples showing when to use each variant.
  * For mock services, see test-3 (layer sharing).
- * For error testing, see test-6 (Effect.either, Effect.exit).
+ * For error testing, see test-6 (Effect.result, Effect.exit).
+ *
+ * v4 changes:
+ * - it.effect now provides Scope (it.scoped merged into it.effect)
+ * - it.live provides Scope too (it.scopedLive merged into it.live)
+ * - TestClock moved to effect/testing/TestClock
+ * - Effect.fork → Effect.forkChild
  */
 
 describe('it.effect test variants', () => {
   /**
-   * it.effect - Use for most tests (provides TestClock)
+   * it.effect - Use for most tests (provides TestClock + Scope)
    *
    * TestClock lets you control time without real delays.
    * Time doesn't advance unless you call TestClock.adjust().
+   * In v4, it.effect also provides Scope (no separate it.scoped needed).
    */
   it.effect('processes delayed operation instantly with TestClock', () =>
     Effect.gen(function* () {
       // Fork an effect that sleeps for 5 minutes
-      const fiber = yield* Effect.fork(
+      const fiber = yield* Effect.forkChild(
         Effect.sleep(Duration.minutes(5)).pipe(Effect.map(() => 'done'))
       )
 
@@ -36,6 +44,7 @@ describe('it.effect test variants', () => {
    * it.live - Use when you need real time or external IO
    *
    * Unlike it.effect, this actually waits for real time to pass.
+   * In v4, it.live also provides Scope (no separate it.scopedLive needed).
    */
   it.live('waits for real time to pass', () =>
     Effect.gen(function* () {
@@ -50,11 +59,12 @@ describe('it.effect test variants', () => {
   )
 
   /**
-   * it.scoped - Use when tests need resource cleanup
+   * Resource cleanup with it.effect
    *
-   * Provides TestClock + automatic cleanup of acquireRelease resources.
+   * In v4, it.effect provides Scope automatically.
+   * acquireRelease resources are cleaned up when the test scope closes.
    */
-  it.scoped('manages resources with automatic cleanup', () =>
+  it.effect('manages resources with automatic cleanup', () =>
     Effect.gen(function* () {
       const cleanups: string[] = []
 
@@ -76,11 +86,11 @@ describe('it.effect test variants', () => {
   )
 
   /**
-   * it.scopedLive - Use when you need real time + resources
+   * Real time with resource cleanup using it.live
    *
-   * Combines real clock (like it.live) with scoped cleanup (like it.scoped).
+   * In v4, it.live provides Scope automatically.
    */
-  it.scopedLive('real time with resource cleanup', () =>
+  it.live('real time with resource cleanup', () =>
     Effect.gen(function* () {
       const start = Date.now()
       const cleanups: string[] = []

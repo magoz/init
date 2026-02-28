@@ -1,6 +1,6 @@
 'use server'
 
-import { Effect, Match } from 'effect'
+import { Effect } from 'effect'
 import { revalidatePath } from 'next/cache'
 import { AppLayer } from '@/lib/layers'
 import { NextEffect } from '@/lib/next-effect'
@@ -32,6 +32,7 @@ export const createPostAction = async (input: CreatePostInput) => {
           userId: session.user.id
         })
         .returning()
+        .execute()
 
       return post
     }).pipe(
@@ -43,23 +44,17 @@ export const createPostAction = async (input: CreatePostInput) => {
       }),
       Effect.provide(AppLayer),
       Effect.scoped,
-      Effect.matchEffect({
-        onFailure: error =>
-          Match.value(error._tag).pipe(
-            Match.when('UnauthenticatedError', () => NextEffect.redirect('/login')),
-            Match.orElse(() =>
-              Effect.succeed({
-                _tag: 'Error' as const,
-                message: `Failed to create post: ${error.message}`
-              })
-            )
-          ),
-        onSuccess: post =>
-          Effect.sync(() => {
-            revalidatePath('/')
-            return { _tag: 'Success' as const, post }
-          })
-      })
+      Effect.catchTag('UnauthenticatedError', () => NextEffect.redirect('/login')),
+      Effect.map(post => {
+        revalidatePath('/')
+        return { _tag: 'Success' as const, post }
+      }),
+      Effect.catch(error =>
+        Effect.succeed({
+          _tag: 'Error' as const,
+          message: `Failed to create post: ${error instanceof Error ? error.message : 'Unknown error'}`
+        })
+      )
     )
   )
 }

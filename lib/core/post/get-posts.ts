@@ -39,6 +39,7 @@ export const getPosts = (params: GetPostsParams = {}) =>
       .from(schema.post)
       .where(and(...conditions))
       .orderBy(orderBy)
+      .execute()
 
     return posts
   }).pipe(Effect.withSpan('Post.getPosts'))

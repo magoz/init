@@ -1,5 +1,5 @@
 import { layer, expect } from '@effect/vitest'
-import { Effect, Layer, Context } from 'effect'
+import { Effect, Layer, ServiceMap } from 'effect'
 import { UnauthenticatedError, NotFoundError } from '@/lib/core/errors'
 
 /**
@@ -12,7 +12,7 @@ import { UnauthenticatedError, NotFoundError } from '@/lib/core/errors'
  * - Test different scenarios with same dependencies
  *
  * For property testing, see test-5 (it.prop).
- * For error testing patterns, see test-6 (Effect.either, Effect.exit).
+ * For error testing patterns, see test-6 (Effect.result, Effect.exit).
  *
  * NOTE: This example uses mock services for unit testing. For integration tests
  * against a real database, see the testcontainers section in specs/EFFECT_TESTING.md.
@@ -27,7 +27,7 @@ type Post = {
 }
 
 // Mock Auth service - returns test session/user
-class Auth extends Context.Tag('@app/Auth')<
+class Auth extends ServiceMap.Service<
   Auth,
   {
     readonly getSession: () => Effect.Effect<
@@ -35,10 +35,10 @@ class Auth extends Context.Tag('@app/Auth')<
       UnauthenticatedError
     >
   }
->() {}
+>()('@app/Auth') {}
 
 // Mock Db service - simplified post operations
-class PostRepository extends Context.Tag('@app/PostRepository')<
+class PostRepository extends ServiceMap.Service<
   PostRepository,
   {
     readonly create: (input: {
@@ -49,7 +49,7 @@ class PostRepository extends Context.Tag('@app/PostRepository')<
     readonly findAll: () => Effect.Effect<Post[]>
     readonly delete: (id: string) => Effect.Effect<void, NotFoundError>
   }
->() {}
+>()('@app/PostRepository') {}
 
 // Factory for creating test Auth implementations
 const createMockAuth = (options?: { authenticated: boolean }) => {
@@ -176,11 +176,11 @@ layer(TestLayer)('Post operations with shared mocks', it => {
         const auth = yield* Auth
 
         // Should fail with UnauthenticatedError
-        const result = yield* auth.getSession().pipe(Effect.either)
+        const result = yield* auth.getSession().pipe(Effect.result)
 
-        expect(result._tag).toBe('Left')
-        if (result._tag === 'Left') {
-          expect(result.left._tag).toBe('UnauthenticatedError')
+        expect(result._tag).toBe('Failure')
+        if (result._tag === 'Failure') {
+          expect(result.failure._tag).toBe('UnauthenticatedError')
         }
       })
     )
@@ -233,11 +233,11 @@ layer(DeleteTestLayer)('Post deletion with fresh layer', it => {
       const repo = yield* PostRepository
 
       // Try to delete non-existent post
-      const result = yield* repo.delete('invalid-id').pipe(Effect.either)
+      const result = yield* repo.delete('invalid-id').pipe(Effect.result)
 
-      expect(result._tag).toBe('Left')
-      if (result._tag === 'Left') {
-        expect(result.left._tag).toBe('NotFoundError')
+      expect(result._tag).toBe('Failure')
+      if (result._tag === 'Failure') {
+        expect(result.failure._tag).toBe('NotFoundError')
       }
     })
   )

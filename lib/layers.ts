@@ -8,10 +8,10 @@ import { TelemetryLayer } from './services/telemetry/live-layer'
 
 // Combined app layer
 export const AppLayer = Layer.mergeAll(
-  Auth.Live,
-  Db.Live,
-  S3.Live,
-  Telegram.Live,
-  Activity.Live,
+  Auth.layer,
+  Db.layer,
+  S3.layer,
+  Telegram.layer,
+  Activity.layer,
   TelemetryLayer
 )

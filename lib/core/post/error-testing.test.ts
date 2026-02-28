@@ -6,7 +6,7 @@ import { UnauthenticatedError, NotFoundError, ValidationError } from '@/lib/core
  * Demonstrates error testing patterns with Effect
  *
  * Three primary patterns for testing errors:
- * 1. Effect.either - converts errors to Either<E, A> for Left/Right matching
+ * 1. Effect.result - converts errors to Result<A, E> for Success/Failure matching
  * 2. Effect.exit - converts to Exit for full Cause inspection (including defects)
  * 3. Effect.catchTag - recovers from specific error types
  *
@@ -15,46 +15,46 @@ import { UnauthenticatedError, NotFoundError, ValidationError } from '@/lib/core
  */
 
 /**
- * Pattern 1: Effect.either for expected errors
+ * Pattern 1: Effect.result for expected errors
  *
- * Use Effect.either when:
+ * Use Effect.result when:
  * - Testing expected error types (domain errors)
  * - You need to assert error properties (message, fields, etc.)
  * - Error recovery isn't needed (just verification)
  *
- * Returns Either<E, A>:
- * - Left(error) when effect fails
- * - Right(value) when effect succeeds
+ * Returns Result<A, E>:
+ * - Failure(error) when effect fails
+ * - Success(value) when effect succeeds
  */
-describe('Effect.either for error assertions', () => {
-  it.effect('converts UnauthenticatedError to Left', () =>
+describe('Effect.result for error assertions', () => {
+  it.effect('converts UnauthenticatedError to Failure', () =>
     Effect.gen(function* () {
       const getUser = Effect.fail(new UnauthenticatedError({ message: 'Session expired' }))
 
-      const result = yield* getUser.pipe(Effect.either)
+      const result = yield* getUser.pipe(Effect.result)
 
-      // Assert Left tag
-      expect(result._tag).toBe('Left')
+      // Assert Failure tag
+      expect(result._tag).toBe('Failure')
 
-      // Type guard for Left access
-      if (result._tag === 'Left') {
-        expect(result.left._tag).toBe('UnauthenticatedError')
-        expect(result.left.message).toBe('Session expired')
+      // Type guard for Failure access
+      if (result._tag === 'Failure') {
+        expect(result.failure._tag).toBe('UnauthenticatedError')
+        expect(result.failure.message).toBe('Session expired')
       }
     })
   )
 
-  it.effect('converts success to Right', () =>
+  it.effect('converts success to Success', () =>
     Effect.gen(function* () {
       const getUser = Effect.succeed({ id: 'user-1', email: 'test@example.com' })
 
-      const result = yield* getUser.pipe(Effect.either)
+      const result = yield* getUser.pipe(Effect.result)
 
-      expect(result._tag).toBe('Right')
+      expect(result._tag).toBe('Success')
 
-      if (result._tag === 'Right') {
-        expect(result.right.id).toBe('user-1')
-        expect(result.right.email).toBe('test@example.com')
+      if (result._tag === 'Success') {
+        expect(result.success.id).toBe('user-1')
+        expect(result.success.email).toBe('test@example.com')
       }
     })
   )
@@ -71,14 +71,14 @@ describe('Effect.either for error assertions', () => {
             )
           : Effect.succeed(title)
 
-      const result = yield* validateTitle('ab').pipe(Effect.either)
+      const result = yield* validateTitle('ab').pipe(Effect.result)
 
-      expect(result._tag).toBe('Left')
+      expect(result._tag).toBe('Failure')
 
-      if (result._tag === 'Left') {
-        expect(result.left._tag).toBe('ValidationError')
-        expect(result.left.field).toBe('title')
-        expect(result.left.message).toBe('Title too short')
+      if (result._tag === 'Failure') {
+        expect(result.failure._tag).toBe('ValidationError')
+        expect(result.failure.field).toBe('title')
+        expect(result.failure.message).toBe('Title too short')
       }
     })
   )
@@ -114,11 +114,12 @@ describe('Effect.exit for Cause inspection', () => {
       expect(Exit.isFailure(result)).toBe(true)
 
       if (Exit.isFailure(result)) {
-        // Check if Cause is a failure (not defect)
-        expect(Cause.isFailType(result.cause)).toBe(true)
+        // Check if first reason is a Fail (not Die)
+        expect(result.cause.reasons.length).toBeGreaterThan(0)
+        expect(Cause.isFailReason(result.cause.reasons[0])).toBe(true)
 
         // Extract error from Cause
-        const error = Cause.failureOption(result.cause)
+        const error = Cause.findErrorOption(result.cause)
         expect(error._tag).toBe('Some')
 
         if (error._tag === 'Some') {
@@ -141,15 +142,16 @@ describe('Effect.exit for Cause inspection', () => {
       expect(Exit.isFailure(result)).toBe(true)
 
       if (Exit.isFailure(result)) {
-        // Defects are Die, not Fail
-        expect(Cause.isDieType(result.cause)).toBe(true)
+        // Defects are Die, not Fail — check first reason
+        expect(result.cause.reasons.length).toBeGreaterThan(0)
+        expect(Cause.isDieReason(result.cause.reasons[0])).toBe(true)
 
-        // Extract defect
-        const defect = Cause.dieOption(result.cause)
-        expect(defect._tag).toBe('Some')
+        // Extract defect — findDefect returns Result, not Option
+        const defect = Cause.findDefect(result.cause)
+        expect(defect._tag).toBe('Success')
 
-        if (defect._tag === 'Some') {
-          const error = defect.value
+        if (defect._tag === 'Success') {
+          const error = defect.success
           expect(error).toBeInstanceOf(Error)
           if (error instanceof Error) {
             expect(error.message).toBe('Unexpected error')
@@ -185,7 +187,7 @@ describe('Effect.exit for Cause inspection', () => {
       expect(Exit.isFailure(result)).toBe(true)
 
       if (Exit.isFailure(result)) {
-        const error = Cause.failureOption(result.cause)
+        const error = Cause.findErrorOption(result.cause)
         expect(error._tag).toBe('Some')
 
         if (error._tag === 'Some') {
@@ -235,14 +237,14 @@ describe('Effect.catchTag for error recovery', () => {
       // catchTag only catches NotFoundError, not UnauthenticatedError
       const result = yield* operation.pipe(
         Effect.catchTag('NotFoundError', () => Effect.succeed<string>('recovered')),
-        Effect.either
+        Effect.result
       )
 
-      expect(result._tag).toBe('Left')
+      expect(result._tag).toBe('Failure')
 
-      if (result._tag === 'Left') {
+      if (result._tag === 'Failure') {
         // UnauthenticatedError propagated through catchTag
-        expect(result.left._tag).toBe('UnauthenticatedError')
+        expect(result.failure._tag).toBe('UnauthenticatedError')
       }
     })
   )
@@ -323,26 +325,26 @@ describe('Effect.catchTag for error recovery', () => {
  *
  * Real-world tests often combine:
  * - catchTag for recovery
- * - either for testing recovery logic
+ * - result for testing recovery logic
  * - exit for Cause inspection
  */
 describe('Combining error patterns', () => {
-  it.effect('tests recovery with Effect.either', () =>
+  it.effect('tests recovery with Effect.result', () =>
     Effect.gen(function* () {
       const operation = Effect.fail(
         new NotFoundError({ message: 'Not found', entity: 'post', id: '1' })
       )
 
-      // Recover and verify with either
+      // Recover and verify with result
       const result = yield* operation.pipe(
         Effect.catchTag('NotFoundError', () => Effect.succeed('recovered')),
-        Effect.either
+        Effect.result
       )
 
-      expect(result._tag).toBe('Right')
+      expect(result._tag).toBe('Success')
 
-      if (result._tag === 'Right') {
-        expect(result.right).toBe('recovered')
+      if (result._tag === 'Success') {
+        expect(result.success).toBe('recovered')
       }
     })
   )
@@ -356,13 +358,13 @@ describe('Combining error patterns', () => {
       // Recover NotFoundError, but not UnauthenticatedError
       const result = yield* operation.pipe(
         Effect.catchTag('NotFoundError', () => Effect.succeed<string>('recovered')),
-        Effect.either
+        Effect.result
       )
 
-      expect(result._tag).toBe('Left')
+      expect(result._tag).toBe('Failure')
 
-      if (result._tag === 'Left') {
-        expect(result.left._tag).toBe('UnauthenticatedError')
+      if (result._tag === 'Failure') {
+        expect(result.failure._tag).toBe('UnauthenticatedError')
       }
     })
   )

@@ -1,6 +1,6 @@
 'use server'
 
-import { Effect, Match } from 'effect'
+import { Effect } from 'effect'
 import { revalidatePath } from 'next/cache'
 import { AppLayer } from '@/lib/layers'
 import { NextEffect } from '@/lib/next-effect'
@@ -27,6 +27,7 @@ export const deletePostAction = async (postId: schema.Post['id']) => {
         .from(schema.post)
         .where(eq(schema.post.id, postId))
         .limit(1)
+        .execute()
 
       if (!existing) {
         return yield* new NotFoundError({
@@ -42,7 +43,7 @@ export const deletePostAction = async (postId: schema.Post['id']) => {
         })
       }
 
-      yield* db.delete(schema.post).where(eq(schema.post.id, postId))
+      yield* db.delete(schema.post).where(eq(schema.post.id, postId)).execute()
     }).pipe(
       Effect.withSpan('action.post.delete', {
         attributes: {
@@ -52,31 +53,17 @@ export const deletePostAction = async (postId: schema.Post['id']) => {
       }),
       Effect.provide(AppLayer),
       Effect.scoped,
-      Effect.matchEffect({
-        onFailure: error =>
-          Match.value(error._tag).pipe(
-            Match.when('UnauthenticatedError', () => NextEffect.redirect('/login')),
-            Match.when('UnauthorizedError', () =>
-              Effect.succeed({
-                _tag: 'Error' as const,
-                message: error.message
-              })
-            ),
-            Match.when('NotFoundError', () =>
-              Effect.succeed({
-                _tag: 'Error' as const,
-                message: error.message
-              })
-            ),
-            Match.orElse(() =>
-              Effect.succeed({
-                _tag: 'Error' as const,
-                message: 'Something went wrong'
-              })
-            )
-          ),
-        onSuccess: () => Effect.sync(() => revalidatePath('/'))
-      })
+      Effect.catchTag('UnauthenticatedError', () => NextEffect.redirect('/login')),
+      Effect.catchTag('UnauthorizedError', error =>
+        Effect.succeed({ _tag: 'Error' as const, message: error.message })
+      ),
+      Effect.catchTag('NotFoundError', error =>
+        Effect.succeed({ _tag: 'Error' as const, message: error.message })
+      ),
+      Effect.tap(() => Effect.sync(() => revalidatePath('/'))),
+      Effect.catch(() =>
+        Effect.succeed({ _tag: 'Error' as const, message: 'Something went wrong' })
+      )
     )
   )
 }

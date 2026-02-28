@@ -14,5 +14,5 @@ export const createTestSetup = (input?: { user?: Partial<InsertUser> }) => {
   return Effect.gen(function* () {
     const user = yield* createTestUser(input?.user)
     return { user }
-  }).pipe(Effect.provide(Db.Live), Effect.scoped)
+  }).pipe(Effect.provide(Db.layer), Effect.scoped)
 }

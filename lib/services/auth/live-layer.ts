@@ -1,4 +1,4 @@
-import { Effect, Context, Layer, Config } from 'effect'
+import { Effect, Layer, Config, ServiceMap } from 'effect'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { nextCookies } from 'better-auth/next-js'
@@ -9,7 +9,7 @@ import { AuthApiError, AuthConfigError } from './errors'
 import { drizzle } from 'drizzle-orm/neon-http'
 
 // Auth database service (internal) - uses Neon HTTP driver for serverless
-class AuthDb extends Context.Tag('@app/AuthDb')<AuthDb, ReturnType<typeof drizzle>>() {}
+class AuthDb extends ServiceMap.Service<AuthDb, ReturnType<typeof drizzle>>()('@app/AuthDb') {}
 
 const AuthDbLive = Layer.effect(
   AuthDb,
@@ -20,7 +20,7 @@ const AuthDbLive = Layer.effect(
 )
 
 // Auth configuration service (internal)
-class AuthConfig extends Context.Tag('@app/AuthConfig')<
+class AuthConfig extends ServiceMap.Service<
   AuthConfig,
   {
     readonly projectUrl: string
@@ -29,38 +29,30 @@ class AuthConfig extends Context.Tag('@app/AuthConfig')<
     readonly vercelUrl: string | undefined
     readonly vercelBranchUrl: string | undefined
   }
->() {}
+>()('@app/AuthConfig') {}
 
 const AuthConfigLive = Layer.effect(
   AuthConfig,
   Effect.gen(function* () {
-    const projectUrl = yield* Config.string('NEXT_PUBLIC_PROJECT_URL').pipe(
-      Effect.mapError(() => new AuthConfigError({ message: 'NEXT_PUBLIC_PROJECT_URL not found' }))
-    )
-    const appName = yield* Config.string('APP_NAME').pipe(
-      Effect.mapError(() => new AuthConfigError({ message: 'APP_NAME not found' }))
-    )
-    const emailSender = yield* Config.string('EMAIL_SENDER').pipe(
-      Effect.mapError(() => new AuthConfigError({ message: 'EMAIL_SENDER not found' }))
-    )
-    // Optional env vars (Vercel deployment)
-    const vercelUrl = yield* Config.string('VERCEL_URL').pipe(
-      Effect.option,
-      Effect.map(opt => (opt._tag === 'Some' ? opt.value : undefined))
-    )
-    const vercelBranchUrl = yield* Config.string('VERCEL_BRANCH_URL').pipe(
-      Effect.option,
-      Effect.map(opt => (opt._tag === 'Some' ? opt.value : undefined))
-    )
+    const projectUrl = yield* Config.string('NEXT_PUBLIC_PROJECT_URL')
+    const appName = yield* Config.string('APP_NAME')
+    const emailSender = yield* Config.string('EMAIL_SENDER')
+    const vercelUrl = yield* Config.option(Config.string('VERCEL_URL'))
+    const vercelBranchUrl = yield* Config.option(Config.string('VERCEL_BRANCH_URL'))
 
-    return { projectUrl, appName, emailSender, vercelUrl, vercelBranchUrl }
-  })
+    return {
+      projectUrl,
+      appName,
+      emailSender,
+      vercelUrl: vercelUrl._tag === 'Some' ? vercelUrl.value : undefined,
+      vercelBranchUrl: vercelBranchUrl._tag === 'Some' ? vercelBranchUrl.value : undefined
+    }
+  }).pipe(Effect.mapError(() => new AuthConfigError({ message: 'Auth config missing' })))
 )
 
 // Service definition
-// v4 migration: Change Effect.Service to ServiceMap.Service
-export class Auth extends Effect.Service<Auth>()('@app/Auth', {
-  effect: Effect.gen(function* () {
+export class Auth extends ServiceMap.Service<Auth>()('@app/Auth', {
+  make: Effect.gen(function* () {
     const authDb = yield* AuthDb
     const emailService = yield* Email
     const config = yield* AuthConfig
@@ -175,11 +167,7 @@ export class Auth extends Effect.Service<Auth>()('@app/Auth', {
     } as const
   })
 }) {
-  // Base layer (has unsatisfied dependencies: AuthDb, AuthConfig, Email)
-  static layer = this.Default
-
-  // Composed layer with all dependencies satisfied
-  static Live = this.layer.pipe(
-    Layer.provide(Layer.mergeAll(AuthConfigLive, AuthDbLive, Email.Live))
+  static layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Layer.mergeAll(AuthConfigLive, AuthDbLive, Email.layer))
   )
 }

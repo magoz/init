@@ -1,32 +1,28 @@
 import { S3 as S3Client, S3Service } from '@effect-aws/client-s3'
-import { Config, Context, Effect, Layer } from 'effect'
+import { Config, Effect, Layer, ServiceMap } from 'effect'
 import { S3ConfigError, S3NoBodyError } from './errors'
 
 export { S3ConfigError, S3NoBodyError }
 
 // Configuration service (internal)
-class S3Config extends Context.Tag('@app/S3Config')<
+class S3Config extends ServiceMap.Service<
   S3Config,
   {
     readonly bucket: string
     readonly region: string
     readonly baseUrl: string
   }
->() {}
+>()('@app/S3Config') {}
 
 const S3ConfigLive = Layer.effect(
   S3Config,
   Effect.gen(function* () {
-    const bucket = yield* Config.string('AWS_S3_BUCKET').pipe(
-      Effect.mapError(() => new S3ConfigError({ message: 'AWS_S3_BUCKET not found' }))
-    )
-    const region = yield* Config.string('AWS_REGION').pipe(
-      Effect.mapError(() => new S3ConfigError({ message: 'AWS_REGION not found' }))
-    )
+    const bucket = yield* Config.string('AWS_S3_BUCKET')
+    const region = yield* Config.string('AWS_REGION')
     const baseUrl = `https://${bucket}.s3.${region}.amazonaws.com/`
 
     return { bucket, region, baseUrl }
-  })
+  }).pipe(Effect.mapError(() => new S3ConfigError({ message: 'S3 config missing' })))
 )
 
 const getContentType = (key: string): string => {
@@ -70,9 +66,8 @@ const getContentType = (key: string): string => {
 }
 
 // Service definition
-// v4 migration: Change Effect.Service to ServiceMap.Service
-export class S3 extends Effect.Service<S3>()('@app/S3', {
-  effect: Effect.gen(function* () {
+export class S3 extends ServiceMap.Service<S3>()('@app/S3', {
+  make: Effect.gen(function* () {
     const config = yield* S3Config
     // Capture the AWS S3 service instance at construction time
     const s3Client = yield* S3Service
@@ -281,9 +276,8 @@ export class S3 extends Effect.Service<S3>()('@app/S3', {
     } as const
   })
 }) {
-  // Base layer (has unsatisfied S3Config and S3Service dependencies)
-  static layer = this.Default
-
-  // Composed layer with all dependencies satisfied
-  static Live = this.layer.pipe(Layer.provide(S3ConfigLive), Layer.provide(S3Client.defaultLayer))
+  static layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(S3ConfigLive),
+    Layer.provide(S3Client.defaultLayer)
+  )
 }

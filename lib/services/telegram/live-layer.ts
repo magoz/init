@@ -1,4 +1,4 @@
-import { Config, Context, Effect, Layer, Redacted } from 'effect'
+import { Config, Effect, Layer, Redacted, ServiceMap } from 'effect'
 import { TelegramConfigError, TelegramSendError } from './errors'
 
 const TELEGRAM_MESSAGE_MAX_LENGTH = 4096
@@ -9,32 +9,27 @@ const splitIntoChunks = (str: string, chunkSize: number): string[] => {
 }
 
 // Configuration service (internal)
-class TelegramConfig extends Context.Tag('@app/TelegramConfig')<
+class TelegramConfig extends ServiceMap.Service<
   TelegramConfig,
   {
     readonly botToken: Redacted.Redacted<string>
     readonly chatId: string
   }
->() {}
+>()('@app/TelegramConfig') {}
 
 const TelegramConfigLive = Layer.effect(
   TelegramConfig,
   Effect.gen(function* () {
-    const botToken = yield* Config.redacted('TELEGRAM_BOT_TOKEN').pipe(
-      Effect.mapError(() => new TelegramConfigError({ message: 'TELEGRAM_BOT_TOKEN not found' }))
-    )
-    const chatId = yield* Config.string('TELEGRAM_CHAT_ID').pipe(
-      Effect.mapError(() => new TelegramConfigError({ message: 'TELEGRAM_CHAT_ID not found' }))
-    )
+    const botToken = yield* Config.redacted('TELEGRAM_BOT_TOKEN')
+    const chatId = yield* Config.string('TELEGRAM_CHAT_ID')
 
     return { botToken, chatId }
-  })
+  }).pipe(Effect.mapError(() => new TelegramConfigError({ message: 'Telegram config missing' })))
 )
 
 // Service definition
-// v4 migration: Change Effect.Service to ServiceMap.Service
-export class Telegram extends Effect.Service<Telegram>()('@app/Telegram', {
-  effect: Effect.gen(function* () {
+export class Telegram extends ServiceMap.Service<Telegram>()('@app/Telegram', {
+  make: Effect.gen(function* () {
     const config = yield* TelegramConfig
 
     const sendMessage = (message: string) =>
@@ -89,9 +84,5 @@ export class Telegram extends Effect.Service<Telegram>()('@app/Telegram', {
     return { send } as const
   })
 }) {
-  // Base layer (has unsatisfied TelegramConfig dependency)
-  static layer = this.Default
-
-  // Composed layer with all dependencies satisfied
-  static Live = this.layer.pipe(Layer.provide(TelegramConfigLive))
+  static layer = Layer.effect(this, this.make).pipe(Layer.provide(TelegramConfigLive))
 }

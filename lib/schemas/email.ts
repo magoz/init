@@ -1,8 +1,9 @@
 import { Schema } from 'effect'
 
-export const EmailSchema = Schema.compose(Schema.Trim, Schema.NonEmptyString).pipe(
-  Schema.pattern(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/),
-  Schema.annotations({
+export const EmailSchema = Schema.Trimmed.pipe(
+  Schema.check(Schema.isNonEmpty()),
+  Schema.check(Schema.isPattern(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)),
+  Schema.annotate({
     title: 'Email',
     description: 'A valid email address'
   }),
@@ -12,4 +13,4 @@ export const EmailSchema = Schema.compose(Schema.Trim, Schema.NonEmptyString).pi
 export type Email = Schema.Schema.Type<typeof EmailSchema>
 
 // Validation helper
-export const parseEmail = Schema.decodeUnknown(EmailSchema)
+export const parseEmail = Schema.decodeUnknownEffect(EmailSchema)

@@ -1,4 +1,4 @@
-import { Effect, FiberRef, Layer } from 'effect'
+import { Effect, Layer, Ref, ServiceMap } from 'effect'
 import { Telegram } from '../telegram/live-layer'
 
 export type Log = {
@@ -10,8 +10,6 @@ export type SendOptions = {
   header?: string
   timestamps?: boolean
 }
-
-const LogsRef = FiberRef.unsafeMake<Log[]>([])
 
 const BORDER = '─────────────────────'
 
@@ -43,23 +41,22 @@ const getDuration = (logs: Log[]) =>
     : 0
 
 // Service definition
-// v4 migration: Change Effect.Service to ServiceMap.Service
-export class Activity extends Effect.Service<Activity>()('@app/Activity', {
-  effect: Effect.gen(function* () {
+export class Activity extends ServiceMap.Service<Activity>()('@app/Activity', {
+  make: Effect.gen(function* () {
     const telegram = yield* Telegram
+    const logsRef = yield* Ref.make<Log[]>([])
 
     const add = (message: string) =>
-      FiberRef.update(LogsRef, logs => [
-        ...logs,
-        { timestamp: new Date().toISOString(), message }
-      ]).pipe(Effect.withSpan('Activity.add'))
+      Ref.update(logsRef, logs => [...logs, { timestamp: new Date().toISOString(), message }]).pipe(
+        Effect.withSpan('Activity.add')
+      )
 
     const send = (messageOrOptions?: string | SendOptions, options?: SendOptions) => {
       const message = typeof messageOrOptions === 'string' ? messageOrOptions : undefined
       const opts = typeof messageOrOptions === 'object' ? messageOrOptions : options
 
       return Effect.gen(function* () {
-        let logs = yield* FiberRef.get(LogsRef)
+        let logs = yield* Ref.get(logsRef)
 
         if (message) {
           logs = [...logs, { timestamp: new Date().toISOString(), message }]
@@ -82,21 +79,17 @@ export class Activity extends Effect.Service<Activity>()('@app/Activity', {
         })
 
         yield* telegram.send(text)
-        yield* FiberRef.set(LogsRef, [])
+        yield* Ref.set(logsRef, [])
       }).pipe(
         Effect.withSpan('Activity.send'),
         Effect.tapError(error => Effect.logError('Activity send failed', { error })),
-        Effect.catchAll(() => Effect.void),
-        Effect.forkDaemon
+        Effect.catch(() => Effect.void),
+        Effect.forkDetach
       )
     }
 
     return { add, send } as const
   })
 }) {
-  // Base layer (has unsatisfied Telegram dependency)
-  static layer = this.Default
-
-  // Composed layer with all dependencies satisfied
-  static Live = this.layer.pipe(Layer.provide(Telegram.Live))
+  static layer = Layer.effect(this, this.make).pipe(Layer.provide(Telegram.layer))
 }

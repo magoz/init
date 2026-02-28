@@ -1,6 +1,6 @@
 'use server'
 
-import { Effect, Match } from 'effect'
+import { Effect } from 'effect'
 import { AppLayer } from '@/lib/layers'
 import { NextEffect } from '@/lib/next-effect'
 import { getSession } from '@/lib/services/auth/get-session'
@@ -66,19 +66,14 @@ export const getUploadUrlAction = async (input: GetUploadUrlInput) => {
       }),
       Effect.provide(AppLayer),
       Effect.scoped,
-      Effect.matchEffect({
-        onFailure: error =>
-          Match.value(error._tag).pipe(
-            Match.when('UnauthenticatedError', () => NextEffect.redirect('/login')),
-            Match.orElse(() =>
-              Effect.succeed({
-                _tag: 'Error' as const,
-                message: 'Failed to generate upload URL'
-              })
-            )
-          ),
-        onSuccess: data => Effect.succeed({ _tag: 'Success' as const, ...data })
-      })
+      Effect.catchTag('UnauthenticatedError', () => NextEffect.redirect('/login')),
+      Effect.map(data => ({ _tag: 'Success' as const, ...data })),
+      Effect.catch(() =>
+        Effect.succeed({
+          _tag: 'Error' as const,
+          message: 'Failed to generate upload URL'
+        })
+      )
     )
   )
 }

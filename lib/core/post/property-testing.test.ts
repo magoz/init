@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@effect/vitest'
-import { Effect, Schema, Arbitrary, Array as EffectArray } from 'effect'
+import { Effect, Schema, Array as EffectArray, Result } from 'effect'
 
 /**
  * Property-Based Testing Examples
@@ -7,19 +7,23 @@ import { Effect, Schema, Arbitrary, Array as EffectArray } from 'effect'
  * Demonstrates:
  * - it.prop with Schema for synchronous property tests
  * - it.effect.prop for async property validation
- * - Arbitrary.make() to create arbitraries from Schema
+ * - Schema.toArbitrary() to create arbitraries from Schema
  * - Testing filter/sort invariants
  */
 
 // Define post input schema for property testing
 export class PostInput extends Schema.Class<PostInput>('PostInput')({
-  title: Schema.NonEmptyTrimmedString.pipe(Schema.maxLength(100)),
-  content: Schema.optional(Schema.String.pipe(Schema.maxLength(5000))),
+  title: Schema.Trimmed.pipe(
+    Schema.check(Schema.isNonEmpty()),
+    Schema.check(Schema.isMaxLength(100))
+  ),
+  content: Schema.optional(Schema.String.pipe(Schema.check(Schema.isMaxLength(5000)))),
   published: Schema.Boolean
 }) {}
 
-// Create arbitrary from Schema - generates valid PostInput instances
-const postInputArb = Arbitrary.make(PostInput)
+// Create arbitraries from Schema - generates valid instances
+const postInputArb = Schema.toArbitrary(PostInput)
+const postInputArrayArb = Schema.toArbitrary(Schema.Array(PostInput))
 
 describe('Property Testing', () => {
   // Synchronous property test - validates schema constraints
@@ -44,7 +48,7 @@ describe('Property Testing', () => {
       yield* Effect.sleep(0) // Represents async operation
 
       // All generated inputs should be valid
-      const parseResult = yield* Schema.decodeUnknown(PostInput)(input, {
+      const parseResult = yield* Schema.decodeUnknownEffect(PostInput)(input, {
         errors: 'all',
         onExcessProperty: 'ignore'
       })
@@ -57,7 +61,7 @@ describe('Property Testing', () => {
   )
 
   // Filter invariant: filtering twice is idempotent
-  it.prop('filtering posts twice gives same result', [Schema.Array(PostInput)], ([posts]) => {
+  it.prop('filtering posts twice gives same result', [postInputArrayArb], ([posts]) => {
     const publishedOnce = posts.filter(p => p.published)
     const publishedTwice = publishedOnce.filter(p => p.published)
 
@@ -66,7 +70,7 @@ describe('Property Testing', () => {
   })
 
   // Sort invariant: sorting is idempotent
-  it.prop('sorting posts twice gives same result', [Schema.Array(PostInput)], ([posts]) => {
+  it.prop('sorting posts twice gives same result', [postInputArrayArb], ([posts]) => {
     const sortByTitle = (a: PostInput, b: PostInput) => a.title.localeCompare(b.title)
 
     const sortedOnce = [...posts].sort(sortByTitle)
@@ -96,12 +100,15 @@ describe('Property Testing', () => {
   // Using Effect Array utilities with property testing
   it.effect.prop(
     'Effect.Array partition is consistent with filter',
-    [Schema.Array(PostInput)],
+    [postInputArrayArb],
     ([posts]) =>
       Effect.gen(function* () {
         // Partition using Effect Array
-        // IMPORTANT: Returns [excluded, included] - opposite of what you might expect!
-        const [excluded, included] = EffectArray.partition(posts, p => p.published)
+        // v4: partition takes a Filter (returns Result instead of boolean)
+        // Returns [excluded, included] - opposite of what you might expect!
+        const [excluded, included] = EffectArray.partition(posts, p =>
+          p.published ? Result.succeed(p) : Result.fail(p)
+        )
 
         // Should match standard filter
         const publishedViaFilter = posts.filter(p => p.published)
@@ -114,12 +121,12 @@ describe('Property Testing', () => {
       })
   )
 
-  // Demonstrating Arbitrary.make() usage - convert Schema to Arbitrary for advanced use
+  // Demonstrating Schema.toArbitrary() usage - convert Schema to Arbitrary for advanced use
   it.prop(
-    'Arbitrary.make creates valid instances from Schema',
-    [PostInput],
+    'Schema.toArbitrary creates valid instances from Schema',
+    [postInputArb],
     ([input]) => {
-      // Arbitrary.make(PostInput) is what generates these test cases
+      // Schema.toArbitrary(PostInput) is what generates these test cases
       // We keep the reference above to show the pattern
 
       // Property: all inputs from PostInput Schema are valid

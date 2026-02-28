@@ -20,7 +20,7 @@ Next.js 16 App Router application with Effect-TS service architecture, Drizzle O
 | Rule                                            | Description                                           |
 | ----------------------------------------------- | ----------------------------------------------------- |
 | `local/no-disable-validation`                   | NEVER use `{ disableValidation: true }`               |
-| `local/no-catch-all-cause`                      | NEVER use `Effect.catchAllCause` - catches defects    |
+| `local/no-catch-all-cause`                      | NEVER use `Effect.catchCause` - catches defects       |
 | `local/no-schema-from-self`                     | NEVER use `*FromSelf` schemas (use standard variants) |
 | `local/no-schema-decode-sync`                   | NEVER use sync decode/encode (throws exceptions)      |
 | `local/prefer-option-from-nullable`             | Use `Option.fromNullable()` instead of ternary        |
@@ -101,23 +101,27 @@ init/
 - **Server actions** end in `-action.ts` - `delete-post-action.ts`
 - **URL state definitions** - `search-params.ts` in the route directory
 
-### Effect-TS Service Pattern
+### Effect-TS Service Pattern (v4)
 
 ```typescript
-// Services use static layer/Live properties for v4 compatibility
-export class ServiceName extends Effect.Service<ServiceName>()('@app/ServiceName', {
-  effect: Effect.gen(function* () {
-    /* ... */
+// Services use ServiceMap.Service with make + Layer.effect
+export class ServiceName extends ServiceMap.Service<ServiceName>()('@app/ServiceName', {
+  make: Effect.gen(function* () {
+    const config = yield* Config.string('VAR')
+    return {
+      /* service shape */
+    } as const
   })
 }) {
-  static layer = this.Default
-  static Live = this.layer.pipe(Layer.provide(ConfigLive))
+  static layer = Layer.effect(this, this.make).pipe(Layer.provide(ConfigLive))
 }
 ```
 
 ### Configuration
 
-- **Always** use `Config.string('VAR')` or `Config.redacted('SECRET')`
+- **Always** use `yield* Config.string('VAR')` or `yield* Config.redacted('SECRET')` inside `Effect.gen`
+- Config is `Yieldable` but NOT an `Effect` — cannot pipe with Effect operators directly
+- For error mapping, wrap the whole `Effect.gen` block
 - **Never** use `process.env` directly with throws
 
 ### Observability
@@ -134,22 +138,25 @@ export class ServiceName extends Effect.Service<ServiceName>()('@app/ServiceName
 
 ## ANTI-PATTERNS (THIS PROJECT)
 
-| Pattern                               | Correct Approach                                      |
-| ------------------------------------- | ----------------------------------------------------- |
-| API routes for CRUD operations        | Server actions (`lib/core/[domain]/*-action.ts`)      |
-| Streaming files through server        | S3 signed URLs (client uploads directly to S3)        |
-| `process.env.X` with throws           | `yield* Config.string('X')`                           |
-| `router.push()` for logout            | `window.location.href = '/'` (layout cache issue)     |
-| Barrel files (`index.ts` re-exports)  | Import from `live-layer.ts` directly                  |
-| `Effect.runPromise()` in pages        | `NextEffect.runPromise()` (handles redirects)         |
-| Layer `dependencies` option           | `Layer.provide()` externally (v4 compat)              |
-| Multiple services per directory       | One service per directory                             |
-| Multiple actions per file             | One action per file ending in `-action.ts`            |
-| `useState` for shareable UI state     | nuqs URL state (`app/*/search-params.ts`)             |
-| Import `parseAs*` from `nuqs`         | Import from `nuqs/server` in search-params.ts         |
-| Direct data fetch in page component   | Suspense + Content pattern (see PAGE_PATTERNS spec)   |
-| Nested Suspense with async components | Single Content component fetches all data             |
-| Missing `export const dynamic`        | Add `export const dynamic = 'force-dynamic'` for auth |
+| Pattern                                         | Correct Approach                                      |
+| ----------------------------------------------- | ----------------------------------------------------- |
+| API routes for CRUD operations                  | Server actions (`lib/core/[domain]/*-action.ts`)      |
+| Streaming files through server                  | S3 signed URLs (client uploads directly to S3)        |
+| `process.env.X` with throws                     | `yield* Config.string('X')`                           |
+| `router.push()` for logout                      | `window.location.href = '/'` (layout cache issue)     |
+| Barrel files (`index.ts` re-exports)            | Import from `live-layer.ts` directly                  |
+| `Effect.runPromise()` in pages                  | `NextEffect.runPromise()` (handles redirects)         |
+| Layer `dependencies` option                     | `Layer.provide()` externally                          |
+| Multiple services per directory                 | One service per directory                             |
+| Multiple actions per file                       | One action per file ending in `-action.ts`            |
+| `useState` for shareable UI state               | nuqs URL state (`app/*/search-params.ts`)             |
+| Import `parseAs*` from `nuqs`                   | Import from `nuqs/server` in search-params.ts         |
+| Direct data fetch in page component             | Suspense + Content pattern (see PAGE_PATTERNS spec)   |
+| Nested Suspense with async components           | Single Content component fetches all data             |
+| Missing `export const dynamic`                  | Add `export const dynamic = 'force-dynamic'` for auth |
+| `matchEffect` for error handling                | `catchTag` chains + `Effect.catch` catch-all          |
+| `yield* db.select().from(...)` no `.execute()`  | Always add `.execute()` to Drizzle queries            |
+| `Config.string('X').pipe(Effect.mapError(...))` | Yield Config directly, map errors on whole block      |
 
 ## UNIQUE STYLES
 
@@ -165,11 +172,11 @@ Uses **Base UI** (`@base-ui/react`) primitives instead of Radix UI. Components a
 
 ```
 AppLayer
-├── Auth.Live → Email.Live
-├── Db.Live
-├── S3.Live
-├── Telegram.Live
-├── Activity.Live → Telegram.Live
+├── Auth.layer → Email.layer
+├── Db.layer
+├── S3.layer
+├── Telegram.layer
+├── Activity.layer → Telegram.layer
 └── TelemetryLayer
 ```
 
@@ -200,10 +207,11 @@ export const deletePostAction = async (postId: Post['id']) => {
       Effect.withSpan('action.post.delete'),
       Effect.provide(AppLayer),
       Effect.scoped,
-      Effect.matchEffect({
-        onFailure: error => /* handle errors */,
-        onSuccess: () => Effect.sync(() => revalidatePath('/posts'))
-      })
+      Effect.catchTag('UnauthenticatedError', () => NextEffect.redirect('/login')),
+      Effect.tap(() => Effect.sync(() => revalidatePath('/posts'))),
+      Effect.catch(() =>
+        Effect.succeed({ _tag: 'Error' as const, message: 'Something went wrong' })
+      )
     )
   )
 }
@@ -216,6 +224,7 @@ export const deletePostAction = async (postId: Post['id']) => {
 - **PostHog proxied** - requests via `/ph/*` rewrites to bypass ad-blockers
 - **Drizzle beta** - using `1.0.0-beta.11`, may have breaking changes
 - Effect v4 migration: services designed for easy `Effect.Service` → `ServiceMap.Service` transition
+- **LSP shows stale v3 errors** - always use `pnpm tsc` for accurate type checking
 
 ## SUBDIRECTORY DOCS
 

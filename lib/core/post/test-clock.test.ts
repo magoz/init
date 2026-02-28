@@ -1,5 +1,6 @@
 import { describe, expect, it } from '@effect/vitest'
-import { Effect, Duration, TestClock, Fiber, Schedule } from 'effect'
+import { Effect, Duration, Fiber, Schedule } from 'effect'
+import * as TestClock from 'effect/testing/TestClock'
 
 /**
  * TestClock patterns for deterministic time-based testing
@@ -24,7 +25,7 @@ describe('TestClock patterns', () => {
     Effect.gen(function* () {
       // Fork an effect that sleeps for 10 seconds
       // Without fork, this would block forever!
-      const fiber = yield* Effect.fork(
+      const fiber = yield* Effect.forkChild(
         Effect.sleep(Duration.seconds(10)).pipe(Effect.map(() => 'completed'))
       )
 
@@ -47,7 +48,7 @@ describe('TestClock patterns', () => {
     Effect.gen(function* () {
       // Fork an effect with a 10-second timeout
       // The sleep is 30 seconds, so it should time out
-      const fiber = yield* Effect.fork(
+      const fiber = yield* Effect.forkChild(
         Effect.sleep(Duration.seconds(30))
           .pipe(Effect.as('completed'))
           .pipe(Effect.timeoutOption(Duration.seconds(10)))
@@ -86,7 +87,7 @@ describe('TestClock patterns', () => {
         })
       )
 
-      const fiber = yield* Effect.fork(unreliableEffect)
+      const fiber = yield* Effect.forkChild(unreliableEffect)
 
       // First retry after 100ms (2^0 * 100)
       yield* TestClock.adjust(Duration.millis(100))
