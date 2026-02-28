@@ -16,7 +16,7 @@ export const noDisableValidation = {
     },
     messages: {
       noDisableValidation:
-        'Never use { disableValidation: true }. Fix the data or schema instead. See specs/EFFECT_BEST_PRACTICES.md'
+        'Never use { disableValidation: true }. Fix the data or schema instead. See patterns/EFFECT_BEST_PRACTICES.md'
     },
     schema: []
   },

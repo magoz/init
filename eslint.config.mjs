@@ -8,9 +8,9 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   prettier,
-  // Local Effect-TS rules (see specs/EFFECT_BEST_PRACTICES.md)
+  // Local Effect-TS rules (see patterns/EFFECT_BEST_PRACTICES.md)
   localRules,
-  // Strict TypeScript rules (see specs/TYPESCRIPT_CONVENTIONS.md)
+  // Strict TypeScript rules (see patterns/TYPESCRIPT_CONVENTIONS.md)
   {
     files: ['**/*.ts', '**/*.tsx'],
     rules: {

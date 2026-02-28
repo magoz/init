@@ -28,7 +28,7 @@ export const noSchemaDecodeSync = {
     },
     messages: {
       noSyncMethod:
-        'Avoid Schema.{{name}} - it throws exceptions. Use Schema.{{alternative}} which returns an Effect. See specs/EFFECT_BEST_PRACTICES.md'
+        'Avoid Schema.{{name}} - it throws exceptions. Use Schema.{{alternative}} which returns an Effect. See patterns/EFFECT_BEST_PRACTICES.md'
     },
     schema: []
   },

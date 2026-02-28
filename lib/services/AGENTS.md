@@ -109,7 +109,7 @@ export const isServiceConfigError = Schema.is(ServiceConfigError)
 - `Schema.is()` creates type guards automatically
 - Better integration with Schema validation
 - Enables serialization/deserialization of errors
-- See `specs/EFFECT_BEST_PRACTICES.md` for detailed patterns
+- See `patterns/EFFECT_BEST_PRACTICES.md` for detailed patterns
 
 **Error naming:**
 

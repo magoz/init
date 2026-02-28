@@ -25,7 +25,7 @@ Need webhook endpoints for external services?
 
 Load data directly in Server Components using Effect-TS. This is the **default pattern** for all read operations.
 
-> **Important:** For pages that require authentication, see `specs/PAGE_PATTERNS.md` for the required Suspense + Content pattern with `export const dynamic = 'force-dynamic'`.
+> **Important:** For pages that require authentication, see `patterns/PAGE_PATTERNS.md` for the required Suspense + Content pattern with `export const dynamic = 'force-dynamic'`.
 
 ### When to Use
 

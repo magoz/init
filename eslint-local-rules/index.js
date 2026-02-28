@@ -1,7 +1,7 @@
 /**
  * Local ESLint rules for Effect-TS best practices
  *
- * These rules enforce the conventions documented in specs/EFFECT_BEST_PRACTICES.md
+ * These rules enforce the conventions documented in patterns/EFFECT_BEST_PRACTICES.md
  */
 
 import { noDisableValidation } from './no-disable-validation.js'

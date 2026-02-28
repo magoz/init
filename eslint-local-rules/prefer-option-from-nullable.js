@@ -15,7 +15,7 @@ export const preferOptionFromNullable = {
     },
     messages: {
       preferFromNullable:
-        'Use Option.fromNullable({{name}}) instead of ternary with Option.some/Option.none. See specs/EFFECT_BEST_PRACTICES.md'
+        'Use Option.fromNullable({{name}}) instead of ternary with Option.some/Option.none. See patterns/EFFECT_BEST_PRACTICES.md'
     },
     schema: []
   },

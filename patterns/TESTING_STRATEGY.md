@@ -126,7 +126,7 @@ layer(createMockAuth())('post operations', it => {
 **Example:**
 
 ```typescript
-// With testcontainers (see specs/EFFECT_TESTING.md for setup)
+// With testcontainers (see patterns/EFFECT_TESTING.md for setup)
 layer(TestDbLayer)('database operations', it => {
   it.effect('persists and retrieves posts', () =>
     Effect.gen(function* () {
@@ -139,7 +139,7 @@ layer(TestDbLayer)('database operations', it => {
 
 **Location:** Colocated with source or `lib/services/*/integration.test.ts`
 
-**Note:** Integration tests require additional setup (testcontainers for Postgres). See `specs/EFFECT_TESTING.md` for details.
+**Note:** Integration tests require additional setup (testcontainers for Postgres). See `patterns/EFFECT_TESTING.md` for details.
 
 ### E2E Tests
 
@@ -239,7 +239,7 @@ layer(testLayer)('post operations', it => {
 
 For detailed Effect testing patterns, see:
 
-- **[specs/EFFECT_TESTING.md](EFFECT_TESTING.md)** - @effect/vitest usage, TestClock, property testing, mocking, testcontainers
+- **[patterns/EFFECT_TESTING.md](EFFECT_TESTING.md)** - @effect/vitest usage, TestClock, property testing, mocking, testcontainers
 
 Key patterns from EFFECT_TESTING.md:
 

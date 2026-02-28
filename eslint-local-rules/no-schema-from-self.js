@@ -37,7 +37,7 @@ export const noSchemaFromSelf = {
     },
     messages: {
       noFromSelf:
-        'Schema.{{name}} does not exist in Effect v4. Use Schema.{{alternative}} instead. See specs/EFFECT_BEST_PRACTICES.md'
+        'Schema.{{name}} does not exist in Effect v4. Use Schema.{{alternative}} instead. See patterns/EFFECT_BEST_PRACTICES.md'
     },
     schema: []
   },

@@ -9,7 +9,7 @@ import * as TestClock from 'effect/testing/TestClock'
  * The TestClock only affects forked effects. Without forking, Effect.sleep blocks
  * forever because the clock never advances.
  *
- * See specs/EFFECT_TESTING.md for full TestClock documentation.
+ * See patterns/EFFECT_TESTING.md for full TestClock documentation.
  */
 
 describe('TestClock patterns', () => {

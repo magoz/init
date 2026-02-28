@@ -20,7 +20,7 @@ export const noCatchAllCause = {
     },
     messages: {
       noCatchAllCause:
-        'Avoid Effect.{{name}} - it catches defects (bugs) that should crash. Use Effect.catch or Effect.mapError to only catch expected errors. See specs/EFFECT_BEST_PRACTICES.md'
+        'Avoid Effect.{{name}} - it catches defects (bugs) that should crash. Use Effect.catch or Effect.mapError to only catch expected errors. See patterns/EFFECT_BEST_PRACTICES.md'
     },
     schema: []
   },
