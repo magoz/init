@@ -10,6 +10,7 @@ This skill provides guidance for creating effective skills.
 
 > **CRITICAL: YAML FRONTMATTER REQUIRED**
 > Every SKILL.md **MUST** begin with YAML frontmatter on line 1. Without it, the skill will not load.
+>
 > ```yaml
 > ---
 > name: skill-name
@@ -60,7 +61,7 @@ skill-name/
 - **Referenced scripts**:
   - Prefer nodejs or python scripts instead of bash script, because bash scripts are not well-supported on Windows.
   - If you're going to write python scripts, make sure you have `requirements.txt`
-  - Make sure scripts respect `.env` file follow this order: `process.env` > `.opencode/skill/${SKILL}/.env` > `.opencode/skill/.env` > `.opencode/.env` 
+  - Make sure scripts respect `.env` file follow this order: `process.env` > `.opencode/skills/${SKILL}/.env` > `.opencode/skills/.env` > `.opencode/.env`
   - Create `.env.example` file to show the required environment variables.
   - Always write tests for these scripts.
 
@@ -84,6 +85,7 @@ description: What this skill does and when to use it. Use third-person.
 ```
 
 **Required fields:**
+
 - `name` — hyphen-case identifier matching directory name
 - `description` — activation trigger; be specific about WHEN to use
 
@@ -101,6 +103,7 @@ license: Apache-2.0
 ```
 
 **INVALID - Do NOT use:**
+
 - XML-style tags (`<purpose>`, `<references>`, `<description>`)
 - Missing `---` delimiters
 - Frontmatter that doesn't start at line 1
@@ -145,9 +148,9 @@ Skills use a three-level loading system to manage context efficiently:
 
 1. **Metadata (name + description)** - Always in context (~100 words)
 2. **SKILL.md body** - When skill triggers (<5k words)
-3. **Bundled resources** - As needed by agent (Unlimited*)
+3. **Bundled resources** - As needed by agent (Unlimited\*)
 
-*Unlimited because scripts can be executed without reading into context window.
+\*Unlimited because scripts can be executed without reading into context window.
 
 ## Skill Creation Process
 
@@ -268,6 +271,7 @@ If validation fails, the script will report the errors and exit without creating
 After testing the skill, users may request improvements. Often this happens right after using the skill, with fresh context of how the skill performed.
 
 **Iteration workflow:**
+
 1. Use the skill on real tasks
 2. Notice struggles or inefficiencies
 3. Identify how SKILL.md or bundled resources should be updated
@@ -290,4 +294,3 @@ Before packaging, verify:
 - [Agent Skills Spec](./references/agent-skills-spec.md) - Complete format specification
 - [Agent Skills Blog](./references/agent-skills-intro-blog.md) - Design philosophy and examples
 - [Agent Skills Best Practices](./references/agent-skills-best-practices.md) - Authoring best practices
-
