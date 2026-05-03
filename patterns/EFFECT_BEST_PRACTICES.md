@@ -456,10 +456,13 @@ export class AccountNotFound extends Schema.TaggedErrorClass<AccountNotFound>()(
 }
 
 // Error with cause (for wrapping other errors)
-export class PersistenceError extends Schema.TaggedErrorClass<PersistenceError>()('PersistenceError', {
-  operation: Schema.String,
-  cause: Schema.Unknown
-}) {
+export class PersistenceError extends Schema.TaggedErrorClass<PersistenceError>()(
+  'PersistenceError',
+  {
+    operation: Schema.String,
+    cause: Schema.Unknown
+  }
+) {
   get message(): string {
     return `Persistence error during ${this.operation}`
   }

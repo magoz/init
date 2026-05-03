@@ -1,6 +1,11 @@
 /* eslint-disable react-hooks/rules-of-hooks -- Playwright fixture, not React */
 
-import { test as base, type BrowserContext, type Page, type APIRequestContext } from '@playwright/test'
+import {
+  test as base,
+  type BrowserContext,
+  type Page,
+  type APIRequestContext
+} from '@playwright/test'
 
 type WorkerFixtures = {
   /** Playwright BrowserContext with better-auth session cookie injected */

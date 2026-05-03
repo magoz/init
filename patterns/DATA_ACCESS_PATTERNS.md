@@ -98,10 +98,7 @@ export const getPosts = () =>
     const db = yield* Db
 
     // Drizzle queries are Yieldable — yield* calls .execute() internally
-    const posts = yield* db
-      .select()
-      .from(schema.post)
-      .where(eq(schema.post.userId, user.id))
+    const posts = yield* db.select().from(schema.post).where(eq(schema.post.userId, user.id))
 
     return posts
   }).pipe(Effect.withSpan('Post.getPosts'))
@@ -320,13 +317,11 @@ export const saveDocumentAction = async (input: SaveDocumentInput) => {
       const session = yield* getSession()
       const db = yield* Db
 
-      yield* db
-        .insert(schema.document)
-        .values({
-          name: input.name,
-          fileUrl: input.fileUrl,
-          uploadedBy: session.user.id
-        })
+      yield* db.insert(schema.document).values({
+        name: input.name,
+        fileUrl: input.fileUrl,
+        uploadedBy: session.user.id
+      })
     }).pipe(
       Effect.withSpan('action.document.save', {
         attributes: {

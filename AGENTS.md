@@ -66,51 +66,51 @@ See `patterns/EFFECT_BEST_PRACTICES.md` for detailed explanations and alternativ
 
 ## CODE MAP
 
-| Symbol                  | Type     | Location                               | Role                                       |
-| ----------------------- | -------- | -------------------------------------- | ------------------------------------------ |
-| `AppLayer`              | Layer    | `lib/layers.ts`                        | Merged service layer for Effect pipelines  |
-| `NextEffect.runPromise` | Function | `lib/next-effect/index.ts`             | Handles redirects + notFound outside Effect context |
-| `NextEffect.redirect`   | Function | `lib/next-effect/index.ts`             | Redirect intent (use inside Effect pipelines)       |
-| `NextEffect.notFound`   | Function | `lib/next-effect/index.ts`             | NotFound intent (use inside Effect pipelines)       |
-| `Auth`                  | Service  | `lib/services/auth/live-layer.ts`      | Authentication (sign in/up/out, sessions)  |
-| `Db`                    | Service  | `lib/services/db/live-layer.ts`        | Database (returns Drizzle client)          |
-| `Email`                 | Service  | `lib/services/email/live-layer.ts`     | Resend email sending                       |
-| `S3`                    | Service  | `lib/services/s3/live-layer.ts`        | AWS S3 file operations                     |
-| `Telegram`              | Service  | `lib/services/telegram/live-layer.ts`  | Telegram bot notifications                 |
-| `Activity`              | Service  | `lib/services/activity/live-layer.ts`  | Activity logging via Telegram              |
-| `TelemetryLayer`        | Layer    | `lib/services/telemetry/live-layer.ts` | OpenTelemetry + Sentry span/log processing |
-| `reportError`           | Function | `lib/services/telemetry/report-error.ts` | Log error + Sentry capture (boundaries only) |
-| `reportWarning`         | Function | `lib/services/telemetry/report-warning.ts` | Log warning + Sentry warning (degraded paths) |
+| Symbol                  | Type     | Location                                   | Role                                                |
+| ----------------------- | -------- | ------------------------------------------ | --------------------------------------------------- |
+| `AppLayer`              | Layer    | `lib/layers.ts`                            | Merged service layer for Effect pipelines           |
+| `NextEffect.runPromise` | Function | `lib/next-effect/index.ts`                 | Handles redirects + notFound outside Effect context |
+| `NextEffect.redirect`   | Function | `lib/next-effect/index.ts`                 | Redirect intent (use inside Effect pipelines)       |
+| `NextEffect.notFound`   | Function | `lib/next-effect/index.ts`                 | NotFound intent (use inside Effect pipelines)       |
+| `Auth`                  | Service  | `lib/services/auth/live-layer.ts`          | Authentication (sign in/up/out, sessions)           |
+| `Db`                    | Service  | `lib/services/db/live-layer.ts`            | Database (returns Drizzle client)                   |
+| `Email`                 | Service  | `lib/services/email/live-layer.ts`         | Resend email sending                                |
+| `S3`                    | Service  | `lib/services/s3/live-layer.ts`            | AWS S3 file operations                              |
+| `Telegram`              | Service  | `lib/services/telegram/live-layer.ts`      | Telegram bot notifications                          |
+| `Activity`              | Service  | `lib/services/activity/live-layer.ts`      | Activity logging via Telegram                       |
+| `TelemetryLayer`        | Layer    | `lib/services/telemetry/live-layer.ts`     | OpenTelemetry + Sentry span/log processing          |
+| `reportError`           | Function | `lib/services/telemetry/report-error.ts`   | Log error + Sentry capture (boundaries only)        |
+| `reportWarning`         | Function | `lib/services/telemetry/report-warning.ts` | Log warning + Sentry warning (degraded paths)       |
 
 ## ANTI-PATTERNS (THIS PROJECT)
 
-| Pattern                                         | Correct Approach                                      |
-| ----------------------------------------------- | ----------------------------------------------------- |
-| API routes for CRUD operations                  | Server actions (`lib/core/[domain]/*-action.ts`)      |
-| Streaming files through server                  | S3 signed URLs (client uploads directly to S3)        |
-| `process.env.X` with throws                     | `yield* Config.string('X')`                           |
-| `router.push()` for logout                      | `window.location.href = '/'` (layout cache issue)     |
-| Barrel files (`index.ts` re-exports)            | Import from `live-layer.ts` directly                  |
-| `Effect.runPromise()` in pages                  | `NextEffect.runPromise()` (handles redirects)         |
-| Layer `dependencies` option                     | `Layer.provide()` externally                          |
-| Multiple services per directory                 | One service per directory                             |
-| Multiple actions per file                       | One action per file ending in `-action.ts`            |
-| `useState` for shareable UI state               | nuqs URL state (`app/*/search-params.ts`)             |
-| Import `parseAs*` from `nuqs`                   | Import from `nuqs/server` in search-params.ts         |
-| Direct data fetch in page component             | Suspense + Content pattern (see PAGE_PATTERNS)        |
-| Nested Suspense with async components           | Single Content component fetches all data             |
-| Missing `export const dynamic`                  | Add `export const dynamic = 'force-dynamic'` for auth |
-| `matchEffect` for error handling                | `catchTag` chains + `Effect.catch` catch-all          |
-| `Config.string('X').pipe(Effect.mapError(...))` | Yield Config directly, map errors on whole block      |
-| `ServiceMap.Service<Self>()(id, { make })`      | `Context.Service<Self>()(id, { make })` — `ServiceMap` renamed to `Context` in Effect v4 |
-| `Logger.pretty`                                 | `Logger.layer([Logger.consolePretty()])` — `Logger.pretty` removed in v4 |
-| `@effect/platform-node` for Db service          | `PgDrizzle.make()` from `drizzle-orm/effect-postgres` — handles connection internally |
-| `drizzle(client, { schema })` manual setup      | `PgDrizzle.make({ relations })` — Effect-native, every query is an Effect |
-| `Schema.TaggedError`                            | `Schema.TaggedErrorClass` — renamed in v4. Or use `Data.TaggedError` for simpler errors |
-| `Either.isRight(r)` / `r.right`                | `Result.isSuccess(r)` / `r.success` — `Either` renamed to `Result` in v4 |
-| `Effect.catchAll(handler)`                      | `Effect.catch(handler)` — v4 rename |
-| `FiberRef.unsafeMake` / `FiberRef.get`          | `Context.Reference` + `References.*` — `FiberRef` removed in v4 |
-| `dotenv.config({ path: '.env.local' })` in a module | `import '@/lib/dotenv'` — centralized, respects `NODE_ENV=test` → `.env.test` |
+| Pattern                                             | Correct Approach                                                                         |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| API routes for CRUD operations                      | Server actions (`lib/core/[domain]/*-action.ts`)                                         |
+| Streaming files through server                      | S3 signed URLs (client uploads directly to S3)                                           |
+| `process.env.X` with throws                         | `yield* Config.string('X')`                                                              |
+| `router.push()` for logout                          | `window.location.href = '/'` (layout cache issue)                                        |
+| Barrel files (`index.ts` re-exports)                | Import from `live-layer.ts` directly                                                     |
+| `Effect.runPromise()` in pages                      | `NextEffect.runPromise()` (handles redirects)                                            |
+| Layer `dependencies` option                         | `Layer.provide()` externally                                                             |
+| Multiple services per directory                     | One service per directory                                                                |
+| Multiple actions per file                           | One action per file ending in `-action.ts`                                               |
+| `useState` for shareable UI state                   | nuqs URL state (`app/*/search-params.ts`)                                                |
+| Import `parseAs*` from `nuqs`                       | Import from `nuqs/server` in search-params.ts                                            |
+| Direct data fetch in page component                 | Suspense + Content pattern (see PAGE_PATTERNS)                                           |
+| Nested Suspense with async components               | Single Content component fetches all data                                                |
+| Missing `export const dynamic`                      | Add `export const dynamic = 'force-dynamic'` for auth                                    |
+| `matchEffect` for error handling                    | `catchTag` chains + `Effect.catch` catch-all                                             |
+| `Config.string('X').pipe(Effect.mapError(...))`     | Yield Config directly, map errors on whole block                                         |
+| `ServiceMap.Service<Self>()(id, { make })`          | `Context.Service<Self>()(id, { make })` — `ServiceMap` renamed to `Context` in Effect v4 |
+| `Logger.pretty`                                     | `Logger.layer([Logger.consolePretty()])` — `Logger.pretty` removed in v4                 |
+| `@effect/platform-node` for Db service              | `PgDrizzle.make()` from `drizzle-orm/effect-postgres` — handles connection internally    |
+| `drizzle(client, { schema })` manual setup          | `PgDrizzle.make({ relations })` — Effect-native, every query is an Effect                |
+| `Schema.TaggedError`                                | `Schema.TaggedErrorClass` — renamed in v4. Or use `Data.TaggedError` for simpler errors  |
+| `Either.isRight(r)` / `r.right`                     | `Result.isSuccess(r)` / `r.success` — `Either` renamed to `Result` in v4                 |
+| `Effect.catchAll(handler)`                          | `Effect.catch(handler)` — v4 rename                                                      |
+| `FiberRef.unsafeMake` / `FiberRef.get`              | `Context.Reference` + `References.*` — `FiberRef` removed in v4                          |
+| `dotenv.config({ path: '.env.local' })` in a module | `import '@/lib/dotenv'` — centralized, respects `NODE_ENV=test` → `.env.test`            |
 
 ## NOTES
 

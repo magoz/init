@@ -61,10 +61,10 @@ Dot-separated, lowercase: `post.id`, `user.email`, `result.count`. Prefix with t
 
 ### Two systems, two purposes
 
-| System | Purpose | Coverage | Mechanism |
-| --- | --- | --- | --- |
+| System         | Purpose                          | Coverage                          | Mechanism                                                  |
+| -------------- | -------------------------------- | --------------------------------- | ---------------------------------------------------------- |
 | **OTel spans** | Observability — "what happened?" | Every domain function (automatic) | `Effect.withSpan` marks span as `STATUS: ERROR` on failure |
-| **Sentry** | Alerting — "wake someone up" | Boundaries only (selective) | `reportError` inside `tapError` or `catch` |
+| **Sentry**     | Alerting — "wake someone up"     | Boundaries only (selective)       | `reportError` inside `tapError` or `catch`                 |
 
 **Key insight:** `withSpan` automatically captures errors in OTel. When an effect fails inside a span, `@effect/opentelemetry` records the exception and sets `status: ERROR` — zero extra code needed. Sentry requires explicit `reportError` and should only fire for errors that need human investigation.
 
@@ -97,6 +97,7 @@ Error occurs in domain function
 ### Why NOT report at the domain level
 
 Domain functions don't know caller intent. A `NotFoundError` is:
+
 - **Expected** in a page (stale URL → redirect silently)
 - **A bug** in an admin batch operation (should alert)
 - **Handled** in a "check if exists" flow (caught, no alert needed)
@@ -136,9 +137,7 @@ Infrastructure services (S3, email, Telegram) use `Effect.logError` — structur
 
 ```typescript
 // Infrastructure: log only (callers own Sentry decision)
-Effect.tapError(error =>
-  Effect.logError('S3 upload failed', { error, key })
-)
+Effect.tapError(error => Effect.logError('S3 upload failed', { error, key }))
 ```
 
 This prevents double-reporting: if the error propagates to a boundary that also calls `reportError`, Sentry would get two events for one failure. Infrastructure logs for debugging context; boundaries report for alerting.
@@ -147,10 +146,11 @@ This prevents double-reporting: if the error propagates to a boundary that also 
 
 ```typescript
 // Best-effort: error caught, never reaches boundary — self-report is correct
-yield* sendNotification(userId).pipe(
-  Effect.tapError(e => reportWarning(e, { operation: 'notification.send' })),
-  Effect.catch(() => Effect.void)
-)
+yield *
+  sendNotification(userId).pipe(
+    Effect.tapError(e => reportWarning(e, { operation: 'notification.send' })),
+    Effect.catch(() => Effect.void)
+  )
 ```
 
 ### reportWarning
@@ -158,10 +158,11 @@ yield* sendNotification(userId).pipe(
 Same shape as `reportError` but Sentry warning level. For non-critical issues:
 
 ```typescript
-yield* reportWarning(
-  { _tag: 'RetryExhausted', message: 'Fell back to cached result' },
-  { operation: 'external.fetch', retries: 3 }
-)
+yield *
+  reportWarning(
+    { _tag: 'RetryExhausted', message: 'Fell back to cached result' },
+    { operation: 'external.fetch', retries: 3 }
+  )
 ```
 
 Use cases:
@@ -218,27 +219,27 @@ Both are already in `AppLayer` (`lib/layers.ts`).
 
 Span names use `domain.entity.action` format. Server actions prefix with `action.`:
 
-| Span | Where |
-| --- | --- |
-| `post.get` | Domain function |
-| `post.create` | Domain function |
-| `action.post.create` | Server action |
-| `action.post.delete` | Server action |
-| `Auth.signIn` | Service method |
-| `Auth.getSessionFromCookies` | Service method |
-| `S3.saveFile` | Service method |
-| `Email.sendEmail` | Service method |
-| `Telegram.send` | Service method |
+| Span                         | Where           |
+| ---------------------------- | --------------- |
+| `post.get`                   | Domain function |
+| `post.create`                | Domain function |
+| `action.post.create`         | Server action   |
+| `action.post.delete`         | Server action   |
+| `Auth.signIn`                | Service method  |
+| `Auth.getSessionFromCookies` | Service method  |
+| `S3.saveFile`                | Service method  |
+| `Email.sendEmail`            | Service method  |
+| `Telegram.send`              | Service method  |
 
 Custom attributes per span:
 
-| Span | Attributes |
-| --- | --- |
-| `action.post.*` | `post.id`, `user.id`, `user.email` |
-| `Auth.*` | (none — session data is the result) |
-| `S3.*` | `s3.bucket`, `s3.key`, `s3.size` |
-| `Email.sendEmail` | `email.to`, `email.subject`, `email.id` |
-| `Telegram.send` | `telegram.messageLength`, `telegram.chatId` |
+| Span              | Attributes                                  |
+| ----------------- | ------------------------------------------- |
+| `action.post.*`   | `post.id`, `user.id`, `user.email`          |
+| `Auth.*`          | (none — session data is the result)         |
+| `S3.*`            | `s3.bucket`, `s3.key`, `s3.size`            |
+| `Email.sendEmail` | `email.to`, `email.subject`, `email.id`     |
+| `Telegram.send`   | `telegram.messageLength`, `telegram.chatId` |
 
 ## Axiom Dashboards
 

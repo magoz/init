@@ -415,12 +415,12 @@ const value = yield * Ref.get(ref)
 | `package.json`                           | Deps updated, removed `@effect/platform` and `@effect/sql`       |
 | `lib/layers.ts`                          | `.Live` → `.layer`                                               |
 | `lib/next-effect/index.ts`               | `Either` → `Result`, `catchAll` → `catch`, remove `as` assertion |
-| `lib/services/db/live-layer.ts`          | `Context.Service`, `PgDrizzle.make()`, removed `NodeServices` |
-| `lib/services/auth/live-layer.ts`        | `Context.Service`, Config pattern                             |
-| `lib/services/email/live-layer.ts`       | `Context.Service`, Config pattern                             |
-| `lib/services/s3/live-layer.ts`          | `Context.Service`, Config pattern                             |
-| `lib/services/telegram/live-layer.ts`    | `Context.Service`, Config pattern                             |
-| `lib/services/activity/live-layer.ts`    | `Context.Service`, `Ref`, `forkDetach`, `catch`               |
+| `lib/services/db/live-layer.ts`          | `Context.Service`, `PgDrizzle.make()`, removed `NodeServices`    |
+| `lib/services/auth/live-layer.ts`        | `Context.Service`, Config pattern                                |
+| `lib/services/email/live-layer.ts`       | `Context.Service`, Config pattern                                |
+| `lib/services/s3/live-layer.ts`          | `Context.Service`, Config pattern                                |
+| `lib/services/telegram/live-layer.ts`    | `Context.Service`, Config pattern                                |
+| `lib/services/activity/live-layer.ts`    | `Context.Service`, `Ref`, `forkDetach`, `catch`                  |
 | `lib/services/retry.ts`                  | `SqlError` import, `Schedule.both`                               |
 | `lib/schemas/email.ts`                   | Full Schema v4 rewrite                                           |
 | `app/api/example/route.ts`               | HTTP modules, `toWebHandlerLayer`, `catchTag` chain              |
@@ -435,7 +435,7 @@ const value = yield * Ref.get(ref)
 | `lib/core/post/error-testing.test.ts`    | `Effect.result`, `Cause.isFailReason`, `findDefect`              |
 | `lib/core/post/get-posts.test.ts`        | `forkChild`, `TestClock` import                                  |
 | `lib/core/post/test-clock.test.ts`       | `forkChild`, `TestClock` import                                  |
-| `lib/core/post/layer-sharing.test.ts`    | `Context.Service()()` syntax, `Effect.result`                 |
+| `lib/core/post/layer-sharing.test.ts`    | `Context.Service()()` syntax, `Effect.result`                    |
 | `lib/core/post/property-testing.test.ts` | Schema v4, `toArbitrary`, `Result` for partition                 |
 | `e2e/utils/setup.ts`                     | `Db.layer`                                                       |
 | `e2e/utils/create-test-user.ts`          | removed `.execute()`                                             |

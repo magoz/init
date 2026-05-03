@@ -100,8 +100,8 @@ Choose beautiful, unique fonts. Pair distinctive display with refined body:
 
 ```css
 @theme {
-  --font-display: "Playfair Display", serif;
-  --font-body: "Source Sans 3", sans-serif;
+  --font-display: 'Playfair Display', serif;
+  --font-body: 'Source Sans 3', sans-serif;
 }
 ```
 
@@ -139,10 +139,14 @@ import { motion, AnimatePresence } from 'motion/react';
 ```
 
 CSS fallback (no JS):
+
 ```css
 dialog[open] {
   opacity: 1;
-  @starting-style { opacity: 0; transform: scale(0.95); }
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.95);
+  }
 }
 ```
 

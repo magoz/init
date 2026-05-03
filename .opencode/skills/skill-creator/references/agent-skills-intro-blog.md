@@ -41,6 +41,7 @@ Example: PDF skill has `reference.md` and `forms.md` separate from core `SKILL.m
 ### Code Execution
 
 Skills can include pre-written scripts. Benefits:
+
 - Sorting via code vs token generation = far cheaper
 - Deterministic reliability
 - Scripts run without loading into context
@@ -55,17 +56,20 @@ Example: Python script extracts PDF form fields without loading script or PDF in
 **Start with evaluation:** Run agents on representative tasks, observe struggles, build skills incrementally to address gaps.
 
 **Structure for scale:**
+
 - Split unwieldy SKILL.md into separate files
 - Keep mutually exclusive contexts separate (reduces tokens)
 - Code serves as both executable tools and documentation
 - Clarify whether scripts should run directly or be read as reference
 
 **Think from agent's perspective:**
+
 - Monitor real usage, iterate on observations
 - Watch for unexpected trajectories or overreliance
 - Pay attention to `name` and `description` - agent uses these to decide when to trigger
 
 **Iterate with agent:**
+
 - Ask agent to capture successful approaches into skill
 - When off track, ask for self-reflection
 - Discover what context agent actually needs vs anticipating upfront
@@ -73,11 +77,13 @@ Example: Python script extracts PDF form fields without loading script or PDF in
 ## Security Considerations
 
 Skills provide new capabilities through instructions and code. Malicious skills may:
+
 - Introduce vulnerabilities
 - Direct data exfiltration
 - Cause unintended actions
 
 Recommendations:
+
 - Install only from trusted sources
 - Audit less-trusted skills before use
 - Review bundled files, code dependencies, resources

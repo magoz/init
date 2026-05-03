@@ -15,6 +15,7 @@ YAML frontmatter + Markdown content.
 ### Frontmatter
 
 Required:
+
 ```yaml
 ---
 name: skill-name
@@ -23,6 +24,7 @@ description: What skill does and when to use it.
 ```
 
 Optional fields:
+
 ```yaml
 ---
 name: pdf-processing
@@ -31,21 +33,21 @@ license: Apache-2.0
 compatibility: Requires git, docker, jq
 metadata:
   author: example-org
-  version: "1.0"
+  version: '1.0'
 allowed-tools: Bash(git:*) Read
 ---
 ```
 
 ### Field Constraints
 
-| Field | Required | Constraints |
-|-------|----------|-------------|
-| `name` | Yes | 1-64 chars, lowercase alphanumeric + hyphens, no start/end hyphen, no `--`, must match parent dir |
-| `description` | Yes | 1-1024 chars, describe what + when |
-| `license` | No | License name or ref to bundled file |
-| `compatibility` | No | 1-500 chars, env requirements |
-| `metadata` | No | Arbitrary key-value pairs |
-| `allowed-tools` | No | Space-delimited pre-approved tools (experimental) |
+| Field           | Required | Constraints                                                                                       |
+| --------------- | -------- | ------------------------------------------------------------------------------------------------- |
+| `name`          | Yes      | 1-64 chars, lowercase alphanumeric + hyphens, no start/end hyphen, no `--`, must match parent dir |
+| `description`   | Yes      | 1-1024 chars, describe what + when                                                                |
+| `license`       | No       | License name or ref to bundled file                                                               |
+| `compatibility` | No       | 1-500 chars, env requirements                                                                     |
+| `metadata`      | No       | Arbitrary key-value pairs                                                                         |
+| `allowed-tools` | No       | Space-delimited pre-approved tools (experimental)                                                 |
 
 ### Name Validation
 
@@ -56,6 +58,7 @@ Invalid: `PDF-Processing` (uppercase), `-pdf` (starts hyphen), `pdf--processing`
 ### Body Content
 
 No format restrictions. Recommended sections:
+
 - Step-by-step instructions
 - Input/output examples
 - Edge cases
@@ -65,6 +68,7 @@ No format restrictions. Recommended sections:
 ### scripts/
 
 Executable code. Should be:
+
 - Self-contained or document dependencies
 - Include helpful error messages
 - Handle edge cases
@@ -72,6 +76,7 @@ Executable code. Should be:
 ### references/
 
 Additional docs loaded on demand:
+
 - `REFERENCE.md` - Technical reference
 - Domain-specific files (`finance.md`, etc.)
 
@@ -80,6 +85,7 @@ Keep files focused for efficient context use.
 ### assets/
 
 Static resources:
+
 - Templates (docs, configs)
 - Images (diagrams, examples)
 - Data files (schemas, lookup tables)

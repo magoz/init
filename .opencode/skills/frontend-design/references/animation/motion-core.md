@@ -22,13 +22,9 @@
 const variants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 }
-};
+}
 
-<motion.div
-  variants={variants}
-  initial="hidden"
-  animate="visible"
-/>
+;<motion.div variants={variants} initial="hidden" animate="visible" />
 ```
 
 ## Gestures
@@ -64,9 +60,9 @@ const variants = {
 ## Exit Animations (AnimatePresence)
 
 ```tsx
-import { AnimatePresence } from 'motion/react';
+import { AnimatePresence } from 'motion/react'
 
-<AnimatePresence>
+;<AnimatePresence>
   {isVisible && (
     <motion.div
       key="modal"
@@ -87,15 +83,17 @@ const container = {
     opacity: 1,
     transition: { staggerChildren: 0.1 }
   }
-};
+}
 
 const item = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 }
-};
+}
 
-<motion.ul variants={container} initial="hidden" animate="visible">
-  {items.map(i => <motion.li key={i} variants={item} />)}
+;<motion.ul variants={container} initial="hidden" animate="visible">
+  {items.map(i => (
+    <motion.li key={i} variants={item} />
+  ))}
 </motion.ul>
 ```
 
@@ -119,35 +117,35 @@ ease: 'linear'
 ease: 'easeIn' | 'easeOut' | 'easeInOut'
 ease: 'circIn' | 'circOut' | 'circInOut'
 ease: 'backIn' | 'backOut' | 'backInOut'
-ease: [0.4, 0, 0.2, 1]  // cubic-bezier
+ease: [0.4, 0, 0.2, 1] // cubic-bezier
 ```
 
 ## useAnimate Hook
 
 ```tsx
-import { useAnimate } from 'motion/react';
+import { useAnimate } from 'motion/react'
 
 function Component() {
-  const [scope, animate] = useAnimate();
-  
+  const [scope, animate] = useAnimate()
+
   const handleClick = async () => {
-    await animate(scope.current, { x: 100 });
-    await animate(scope.current, { scale: 1.2 });
-  };
-  
-  return <div ref={scope} onClick={handleClick} />;
+    await animate(scope.current, { x: 100 })
+    await animate(scope.current, { scale: 1.2 })
+  }
+
+  return <div ref={scope} onClick={handleClick} />
 }
 ```
 
 ## Motion Values
 
 ```tsx
-import { useMotionValue, useTransform } from 'motion/react';
+import { useMotionValue, useTransform } from 'motion/react'
 
-const x = useMotionValue(0);
-const opacity = useTransform(x, [0, 100], [1, 0]);
+const x = useMotionValue(0)
+const opacity = useTransform(x, [0, 100], [1, 0])
 
-<motion.div style={{ x, opacity }} drag="x" />
+;<motion.div style={{ x, opacity }} drag="x" />
 ```
 
 ## Integration with Tailwind
