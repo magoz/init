@@ -1,5 +1,5 @@
 import { layer, expect } from '@effect/vitest'
-import { Effect, Layer, ServiceMap } from 'effect'
+import { Context, Effect, Layer } from 'effect'
 import { UnauthenticatedError, NotFoundError } from '@/lib/core/errors'
 
 /**
@@ -27,7 +27,7 @@ type Post = {
 }
 
 // Mock Auth service - returns test session/user
-class Auth extends ServiceMap.Service<
+class Auth extends Context.Service<
   Auth,
   {
     readonly getSession: () => Effect.Effect<
@@ -38,7 +38,7 @@ class Auth extends ServiceMap.Service<
 >()('@app/Auth') {}
 
 // Mock Db service - simplified post operations
-class PostRepository extends ServiceMap.Service<
+class PostRepository extends Context.Service<
   PostRepository,
   {
     readonly create: (input: {

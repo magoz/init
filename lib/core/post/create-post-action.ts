@@ -32,7 +32,6 @@ export const createPostAction = async (input: CreatePostInput) => {
           userId: session.user.id
         })
         .returning()
-        .execute()
 
       return post
     }).pipe(

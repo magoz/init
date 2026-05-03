@@ -97,16 +97,25 @@ See `patterns/EFFECT_BEST_PRACTICES.md` for detailed explanations and alternativ
 | Nested Suspense with async components           | Single Content component fetches all data             |
 | Missing `export const dynamic`                  | Add `export const dynamic = 'force-dynamic'` for auth |
 | `matchEffect` for error handling                | `catchTag` chains + `Effect.catch` catch-all          |
-| `yield* db.select().from(...)` no `.execute()`  | Always add `.execute()` to Drizzle queries            |
+| `yield* db.select().from(...)` no `.execute()`  | Not needed — Drizzle queries are `Yieldable`, `yield*` calls `.execute()` internally |
 | `Config.string('X').pipe(Effect.mapError(...))` | Yield Config directly, map errors on whole block      |
+| `ServiceMap.Service<Self>()(id, { make })`      | `Context.Service<Self>()(id, { make })` — `ServiceMap` renamed to `Context` in Effect v4 |
+| `Logger.pretty`                                 | `Logger.layer([Logger.consolePretty()])` — `Logger.pretty` removed in v4 |
+| `@effect/platform-node` for Db service          | `PgDrizzle.make()` from `drizzle-orm/effect-postgres` — handles connection internally |
+| `drizzle(client, { schema })` manual setup      | `PgDrizzle.make({ relations })` — Effect-native, every query is an Effect |
+| `Schema.TaggedError`                            | `Schema.TaggedErrorClass` — renamed in v4. Or use `Data.TaggedError` for simpler errors |
+| `Either.isRight(r)` / `r.right`                | `Result.isSuccess(r)` / `r.success` — `Either` renamed to `Result` in v4 |
+| `Effect.catchAll(handler)`                      | `Effect.catch(handler)` — v4 rename |
+| `FiberRef.unsafeMake` / `FiberRef.get`          | `Context.Reference` + `References.*` — `FiberRef` removed in v4 |
 
 ## NOTES
 
 - **No CI/CD configured** - deployment via Vercel auto-deploy
 - **React Compiler enabled** - automatic memoization (experimental)
 - **PostHog proxied** - requests via `/ph/*` rewrites to bypass ad-blockers
-- **Drizzle beta** - using `1.0.0-beta.11`, may have breaking changes
-- Effect v4: services use `ServiceMap.Service`, errors use `catchTag` chains + `Effect.catch`
+- **Drizzle v1 RC** - using `1.0.0-rc.1` with Effect-native driver (`drizzle-orm/effect-postgres`)
+- Effect v4: services use `Context.Service`, errors use `catchTag` chains + `Effect.catch`
+- **`@effect/platform-node` removed** - Db uses `PgDrizzle.make()` + `@effect/sql-pg` directly
 - **LSP shows stale v3 errors** - always use `pnpm tsc` for accurate type checking
 - **NextEffect.runPromise** required because Next.js redirects must be called outside try-catch
 

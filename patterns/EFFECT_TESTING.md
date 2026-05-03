@@ -336,11 +336,11 @@ it.prop('money addition is associative', [moneyArb, moneyArb, moneyArb], ([a, b,
 Create test implementations of services for isolated unit tests:
 
 ```typescript
-import { Layer, Effect, ServiceMap } from 'effect'
+import { Layer, Effect, Context } from 'effect'
 import { it, expect } from '@effect/vitest'
 
-// Production service (v4: ServiceMap.Service)
-class EmailService extends ServiceMap.Service<
+// Production service (v4: Context.Service)
+class EmailService extends Context.Service<
   EmailService,
   {
     readonly send: (to: string, subject: string, body: string) => Effect.Effect<void>
@@ -386,7 +386,7 @@ For integration tests against a real database, use testcontainers to spin up iso
 
 ```typescript
 // test/utils.ts
-import { Effect, Layer, Data, Redacted, ServiceMap } from 'effect'
+import { Effect, Layer, Data, Redacted, Context } from 'effect'
 import { PostgreSqlContainer } from '@testcontainers/postgresql'
 
 // Error type for container failures
@@ -394,8 +394,8 @@ export class ContainerError extends Data.TaggedError('ContainerError')<{
   cause: unknown
 }> {}
 
-// Container as ServiceMap.Service with scoped lifecycle
-export class PgContainer extends ServiceMap.Service<PgContainer>()('test/PgContainer', {
+// Container as Context.Service with scoped lifecycle
+export class PgContainer extends Context.Service<PgContainer>()('test/PgContainer', {
   make: Effect.acquireRelease(
     Effect.tryPromise({
       try: () => new PostgreSqlContainer('postgres:alpine').start(),

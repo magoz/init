@@ -1,4 +1,4 @@
-import { Layer } from 'effect'
+import { Layer, Logger } from 'effect'
 import { Db } from './services/db/live-layer'
 import { Auth } from './services/auth/live-layer'
 import { S3 } from './services/s3/live-layer'
@@ -11,6 +11,7 @@ export const AppLayer = Layer.mergeAll(
   Auth.layer,
   Db.layer,
   S3.layer,
+  Logger.layer([Logger.consolePretty()]),
   Telegram.layer,
   Activity.layer,
   TelemetryLayer

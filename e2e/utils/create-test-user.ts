@@ -20,7 +20,6 @@ export const createTestUser = (input?: Partial<InsertUser>) => {
         ...input
       })
       .returning()
-      .execute()
 
     return results[0]
   })

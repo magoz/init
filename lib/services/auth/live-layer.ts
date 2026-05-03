@@ -1,4 +1,4 @@
-import { Effect, Layer, Config, ServiceMap } from 'effect'
+import { Context, Effect, Layer, Config } from 'effect'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { nextCookies } from 'better-auth/next-js'
@@ -9,18 +9,18 @@ import { AuthApiError, AuthConfigError } from './errors'
 import { drizzle } from 'drizzle-orm/neon-http'
 
 // Auth database service (internal) - uses Neon HTTP driver for serverless
-class AuthDb extends ServiceMap.Service<AuthDb, ReturnType<typeof drizzle>>()('@app/AuthDb') {}
+class AuthDb extends Context.Service<AuthDb, ReturnType<typeof drizzle>>()('@app/AuthDb') {}
 
 const AuthDbLive = Layer.effect(
   AuthDb,
   Effect.gen(function* () {
     const url = yield* Config.string('DATABASE_URL')
-    return drizzle({ connection: url, schema })
+    return drizzle({ connection: url, relations: schema.relations })
   })
 )
 
 // Auth configuration service (internal)
-class AuthConfig extends ServiceMap.Service<
+class AuthConfig extends Context.Service<
   AuthConfig,
   {
     readonly projectUrl: string
@@ -51,7 +51,7 @@ const AuthConfigLive = Layer.effect(
 )
 
 // Service definition
-export class Auth extends ServiceMap.Service<Auth>()('@app/Auth', {
+export class Auth extends Context.Service<Auth>()('@app/Auth', {
   make: Effect.gen(function* () {
     const authDb = yield* AuthDb
     const emailService = yield* Email

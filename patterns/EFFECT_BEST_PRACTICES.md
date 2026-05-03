@@ -128,10 +128,10 @@ The `never` error type means the effect cannot fail. Adding `catch` to a `never`
 ```typescript
 // WRONG - global Error breaks Effect's typed error handling
 const bad: Effect.Effect<Result, Error> = Effect.fail(new Error('failed'))
-Effect.catchAll(e => Effect.fail(new Error(`Wrapped: ${e}`)))
+Effect.catch(e => Effect.fail(new Error(`Wrapped: ${e}`)))
 
-// CORRECT - use Schema.TaggedError for all domain errors
-export class ValidationError extends Schema.TaggedError<ValidationError>()('ValidationError', {
+// CORRECT - use Schema.TaggedErrorClass for all domain errors
+export class ValidationError extends Schema.TaggedErrorClass<ValidationError>()('ValidationError', {
   message: Schema.String
 }) {
   // Optional: custom message getter
@@ -152,7 +152,7 @@ Using the global `Error` type:
 - Makes error discrimination impossible
 - Prevents the compiler from tracking which errors are handled
 
-Always use `Schema.TaggedError` with a unique `_tag` for every error type.
+Always use `Schema.TaggedErrorClass` with a unique `_tag` for every error type.
 
 ### 4. NEVER Use `{ disableValidation: true }` - It Is Banned
 
@@ -437,16 +437,16 @@ export class Account extends Schema.Class<Account>('Account')({
 
 The ESLint rule `local/no-schema-from-self` catches any accidental use of stale v3 `*FromSelf` patterns.
 
-### Schema.TaggedError for Domain Errors
+### Schema.TaggedErrorClass for Domain Errors
 
-Use `Schema.TaggedError` for all domain errors. Schema automatically provides type guards via `Schema.is()`.
+Use `Schema.TaggedErrorClass` for all domain errors. Schema automatically provides type guards via `Schema.is()`.
 
 ```typescript
 import * as Schema from 'effect/Schema'
 import * as Effect from 'effect/Effect'
 
 // Simple error with fields
-export class AccountNotFound extends Schema.TaggedError<AccountNotFound>()('AccountNotFound', {
+export class AccountNotFound extends Schema.TaggedErrorClass<AccountNotFound>()('AccountNotFound', {
   accountId: Schema.String
 }) {
   // Optional: custom message getter
@@ -456,7 +456,7 @@ export class AccountNotFound extends Schema.TaggedError<AccountNotFound>()('Acco
 }
 
 // Error with cause (for wrapping other errors)
-export class PersistenceError extends Schema.TaggedError<PersistenceError>()('PersistenceError', {
+export class PersistenceError extends Schema.TaggedErrorClass<PersistenceError>()('PersistenceError', {
   operation: Schema.String,
   cause: Schema.Unknown
 }) {
@@ -720,13 +720,13 @@ const handleError = Match.type<AccountError>().pipe(
 
 ---
 
-## Service Pattern (ServiceMap.Service + Layer)
+## Service Pattern (Context.Service + Layer)
 
 ```typescript
-import { Effect, Layer, ServiceMap, Config } from 'effect'
+import { Effect, Layer, Context, Config } from 'effect'
 
 // Service with make: constructor logic is part of the class definition
-export class AccountService extends ServiceMap.Service<AccountService>()('@app/AccountService', {
+export class AccountService extends Context.Service<AccountService>()('@app/AccountService', {
   make: Effect.gen(function* () {
     const db = yield* Db
     const connectionString = yield* Config.string('DATABASE_URL')
@@ -759,7 +759,7 @@ export class AccountService extends ServiceMap.Service<AccountService>()('@app/A
 
 ```typescript
 // Simple service
-export class MyService extends ServiceMap.Service<MyService>()('@app/MyService', {
+export class MyService extends Context.Service<MyService>()('@app/MyService', {
   make: Effect.gen(function* () {
     return {
       /* service shape */
@@ -770,7 +770,7 @@ export class MyService extends ServiceMap.Service<MyService>()('@app/MyService',
 }
 
 // Service with dependencies
-export class AccountService extends ServiceMap.Service<AccountService>()('@app/AccountService', {
+export class AccountService extends Context.Service<AccountService>()('@app/AccountService', {
   make: Effect.gen(function* () {
     const db = yield* Db
     return {
@@ -786,7 +786,7 @@ export class AccountService extends ServiceMap.Service<AccountService>()('@app/A
 
 ```typescript
 // Example: Service with a PubSub for change notifications
-export class NotificationService extends ServiceMap.Service<NotificationService>()(
+export class NotificationService extends Context.Service<NotificationService>()(
   '@app/NotificationService',
   {
     make: Effect.gen(function* () {

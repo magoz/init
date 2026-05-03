@@ -97,12 +97,11 @@ export const getPosts = () =>
     const { user } = yield* getSession()
     const db = yield* Db
 
-    // Always add .execute() to Drizzle queries in v4
+    // Drizzle queries are Yieldable — yield* calls .execute() internally
     const posts = yield* db
       .select()
       .from(schema.post)
       .where(eq(schema.post.userId, user.id))
-      .execute()
 
     return posts
   }).pipe(Effect.withSpan('Post.getPosts'))
@@ -328,7 +327,6 @@ export const saveDocumentAction = async (input: SaveDocumentInput) => {
           fileUrl: input.fileUrl,
           uploadedBy: session.user.id
         })
-        .execute()
     }).pipe(
       Effect.withSpan('action.document.save', {
         attributes: {

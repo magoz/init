@@ -1,11 +1,11 @@
 import { S3 as S3Client, S3Service } from '@effect-aws/client-s3'
-import { Config, Effect, Layer, ServiceMap } from 'effect'
+import { Config, Context, Effect, Layer } from 'effect'
 import { S3ConfigError, S3NoBodyError } from './errors'
 
 export { S3ConfigError, S3NoBodyError }
 
 // Configuration service (internal)
-class S3Config extends ServiceMap.Service<
+class S3Config extends Context.Service<
   S3Config,
   {
     readonly bucket: string
@@ -66,7 +66,7 @@ const getContentType = (key: string): string => {
 }
 
 // Service definition
-export class S3 extends ServiceMap.Service<S3>()('@app/S3', {
+export class S3 extends Context.Service<S3>()('@app/S3', {
   make: Effect.gen(function* () {
     const config = yield* S3Config
     // Capture the AWS S3 service instance at construction time

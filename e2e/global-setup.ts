@@ -11,7 +11,7 @@ const globalSetup = async () => {
 
   // Use direct connection for reset (drizzle-seed doesn't support Effect-wrapped db)
   const sql = neon(process.env.DATABASE_URL!)
-  const db = drizzle({ client: sql, schema })
+  const db = drizzle({ client: sql, relations: schema.relations })
 
   await reset(db, schema)
 

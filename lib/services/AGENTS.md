@@ -17,14 +17,14 @@ lib/services/
 
 ## Service Definition Pattern
 
-Use `ServiceMap.Service` with `make` and a static `layer` property:
+Use `Context.Service` with `make` and a static `layer` property:
 
 ```typescript
-import { Effect, Layer, Config, ServiceMap } from 'effect'
+import { Context, Effect, Layer, Config } from 'effect'
 import { ServiceNameError } from './errors'
 
 // Internal configuration (if needed)
-class ServiceConfig extends ServiceMap.Service<ServiceConfig, { readonly apiKey: string }>()(
+class ServiceConfig extends Context.Service<ServiceConfig, { readonly apiKey: string }>()(
   '@app/ServiceConfig'
 ) {}
 
@@ -37,7 +37,7 @@ const ServiceConfigLive = Layer.effect(
 )
 
 // Service definition
-export class ServiceName extends ServiceMap.Service<ServiceName>()('@app/ServiceName', {
+export class ServiceName extends Context.Service<ServiceName>()('@app/ServiceName', {
   make: Effect.gen(function* () {
     const config = yield* ServiceConfig
 
@@ -62,8 +62,8 @@ export class ServiceName extends ServiceMap.Service<ServiceName>()('@app/Service
 
 Key patterns:
 
-- `ServiceMap.Service<Self>()('id', { make: ... })` for services with effectful constructors
-- `ServiceMap.Service<Self, Shape>()('id')` for interface-only services (used in tests)
+- `Context.Service<Self>()('id', { make: ... })` for services with effectful constructors
+- `Context.Service<Self, Shape>()('id')` for interface-only services (used in tests)
 - `Layer.effect(this, this.make)` builds a layer from the make effect
 - `Layer.provide(...)` wires dependencies externally (no `dependencies` option)
 - Convention: single `layer` property (not `layer` + `Live`)
@@ -80,13 +80,13 @@ Key patterns:
 
 ## Error Definition Pattern
 
-Define errors in a separate `errors.ts` file using `Schema.TaggedError`:
+Define errors in a separate `errors.ts` file using `Schema.TaggedErrorClass`:
 
 ```typescript
 import * as Schema from 'effect/Schema'
 
-// Schema.TaggedError provides automatic type guards via Schema.is()
-export class ServiceApiError extends Schema.TaggedError<ServiceApiError>()('ServiceApiError', {
+// Schema.TaggedErrorClass provides automatic type guards via Schema.is()
+export class ServiceApiError extends Schema.TaggedErrorClass<ServiceApiError>()('ServiceApiError', {
   error: Schema.Unknown
 }) {
   get message(): string {
@@ -94,7 +94,7 @@ export class ServiceApiError extends Schema.TaggedError<ServiceApiError>()('Serv
   }
 }
 
-export class ServiceConfigError extends Schema.TaggedError<ServiceConfigError>()(
+export class ServiceConfigError extends Schema.TaggedErrorClass<ServiceConfigError>()(
   'ServiceConfigError',
   { message: Schema.String }
 ) {}
@@ -104,12 +104,13 @@ export const isServiceApiError = Schema.is(ServiceApiError)
 export const isServiceConfigError = Schema.is(ServiceConfigError)
 ```
 
-**Why Schema.TaggedError over Data.TaggedError:**
+**Why Schema.TaggedErrorClass over Data.TaggedError:**
 
 - `Schema.is()` creates type guards automatically
 - Better integration with Schema validation
 - Enables serialization/deserialization of errors
 - See `patterns/EFFECT_BEST_PRACTICES.md` for detailed patterns
+- For simpler internal errors, `Data.TaggedError` is also fine — no schema overhead
 
 **Error naming:**
 
@@ -222,9 +223,9 @@ Effect.runPromise(program.pipe(Effect.provide(Auth.layer)))
 ## Checklist for New Services
 
 - [ ] Create directory: `lib/services/[name]/`
-- [ ] Create `live-layer.ts` with `ServiceMap.Service` + `make` pattern
+- [ ] Create `live-layer.ts` with `Context.Service` + `make` pattern
 - [ ] Add static `layer` property (fully composed with all deps)
-- [ ] Create `errors.ts` with `Schema.TaggedError` errors (if needed)
+- [ ] Create `errors.ts` with `Schema.TaggedErrorClass` errors (if needed)
 - [ ] Use `yield* Config.string(...)` for all environment variables
 - [ ] Add `Effect.withSpan()` to all methods
 - [ ] Add `Effect.annotateCurrentSpan()` for relevant attributes

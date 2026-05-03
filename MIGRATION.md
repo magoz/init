@@ -1,26 +1,26 @@
 # Migration Guide: Effect v4 + Drizzle 1.0
 
-**Status:** Complete (beta)
+**Status:** Complete (RC)
 **Branch:** `v4`
-**Last updated:** 2026-02-28
+**Last updated:** 2026-05-03
 
 ## Overview
 
-This codebase has been migrated from Effect v3 + Drizzle ORM beta to Effect v4 beta + Drizzle ORM 1.0 beta. All code compiles (`pnpm tsc`), lints (`pnpm lint`), and tests pass (`pnpm test:run`).
+This codebase has been migrated from Effect v3 + Drizzle ORM beta to Effect v4 + Drizzle ORM 1.0 RC. All code compiles (`pnpm tsc`), lints (`pnpm lint`), and tests pass (`pnpm test:run`).
 
 ### Version Changes
 
-| Package                 | Before     | After           | Notes                |
-| ----------------------- | ---------- | --------------- | -------------------- |
-| `effect`                | `^3.19.14` | `4.0.0-beta.20` | Major rewrite        |
-| `@effect/platform`      | `^0.94.1`  | **Removed**     | Merged into `effect` |
-| `@effect/platform-node` | `^0.104.0` | `4.0.0-beta.20` | Stays separate       |
-| `@effect/sql`           | `^0.49.0`  | **Removed**     | Merged into `effect` |
-| `@effect/sql-pg`        | `^0.50.1`  | `4.0.0-beta.20` | Stays separate       |
-| `@effect/opentelemetry` | `^0.60.0`  | `4.0.0-beta.20` | Stays separate       |
-| `@effect/vitest`        | `^0.27.0`  | `4.0.0-beta.20` | Stays separate       |
-| `@effect-aws/client-s3` | `^1.10.7`  | `2.0.0-beta.2`  | v4-compatible        |
-| `drizzle-orm`           | `beta`     | `1.0.0-beta.11` | Major release        |
+| Package                 | Before     | After           | Notes                               |
+| ----------------------- | ---------- | --------------- | ----------------------------------- |
+| `effect`                | `^3.19.14` | `4.0.0-beta.59` | Major rewrite                       |
+| `@effect/platform`      | `^0.94.1`  | **Removed**     | Merged into `effect`                |
+| `@effect/platform-node` | `^0.104.0` | **Removed**     | Db uses `PgDrizzle.make()` directly |
+| `@effect/sql`           | `^0.49.0`  | **Removed**     | Merged into `effect`                |
+| `@effect/sql-pg`        | `^0.50.1`  | `4.0.0-beta.59` | Stays separate                      |
+| `@effect/opentelemetry` | `^0.60.0`  | `4.0.0-beta.59` | Stays separate                      |
+| `@effect/vitest`        | `^0.27.0`  | `4.0.0-beta.59` | Stays separate                      |
+| `@effect-aws/client-s3` | `^1.10.7`  | `2.0.0-beta.4`  | v4-compatible                       |
+| `drizzle-orm`           | `beta`     | `1.0.0-rc.1`    | RC with Effect-native driver        |
 
 ---
 
@@ -44,7 +44,7 @@ This codebase has been migrated from Effect v3 + Drizzle ORM beta to Effect v4 b
 
 ## 1. Services
 
-`Context.Tag` / `Effect.Service` → `ServiceMap.Service`
+`Context.Tag` / `Effect.Service` → `Context.Service` (was `Context.Service` in earlier v4 betas, renamed to `Context.Service` in beta.59)
 
 ### Internal tags (interface-only services)
 
@@ -53,10 +53,10 @@ This codebase has been migrated from Effect v3 + Drizzle ORM beta to Effect v4 b
 class AuthDb extends Context.Tag('@app/AuthDb')<AuthDb, ReturnType<typeof drizzle>>() {}
 
 // v4
-class AuthDb extends ServiceMap.Service<AuthDb, ReturnType<typeof drizzle>>()('@app/AuthDb') {}
+class AuthDb extends Context.Service<AuthDb, ReturnType<typeof drizzle>>()('@app/AuthDb') {}
 ```
 
-Note the argument reorder: type params via `ServiceMap.Service<Self, Shape>()`, then id string `(id)`.
+Note the argument reorder: type params via `Context.Service<Self, Shape>()`, then id string `(id)`.
 
 ### Services with `make`
 
@@ -70,7 +70,7 @@ export class Db extends Effect.Service<Db>()('@app/Db', {
 }
 
 // v4
-export class Db extends ServiceMap.Service<Db>()('@app/Db', {
+export class Db extends Context.Service<Db>()('@app/Db', {
   make: Effect.gen(function* () { ... })
 }) {
   static layer = Layer.effect(this, this.make).pipe(Layer.provide(...))
@@ -155,16 +155,27 @@ import { SqlError } from 'effect/unstable/sql/SqlError'
 
 ### `@effect/platform-node`
 
-`NodeContext.layer` → `NodeServices.layer`:
+`NodeContext.layer` → `NodeServices.layer`. However, this package is no longer needed for the Db service — `PgDrizzle.make()` from `drizzle-orm/effect-postgres` handles the connection internally via `@effect/sql-pg`.
 
 ```typescript
 // v3
 import { NodeContext } from '@effect/platform-node'
 Layer.provide(NodeContext.layer)
 
-// v4
+// v4 (if still needed for other platform services)
 import { NodeServices } from '@effect/platform-node'
 Layer.provide(NodeServices.layer)
+
+// v4 Db service (no NodeServices needed)
+import * as PgDrizzle from 'drizzle-orm/effect-postgres'
+export class Db extends Context.Service<Db>()('@app/Db', {
+  make: PgDrizzle.make({ relations })
+}) {
+  static layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(PgDrizzle.DefaultServices),
+    Layer.provide(PgLive)
+  )
+}
 ```
 
 ---
@@ -283,21 +294,17 @@ Schedule.both(Schedule.exponential('100 millis'), Schedule.recurs(3))
 
 ## 11. Drizzle Queries
 
-### `.execute()` required for type safety
+### `.execute()` no longer needed
 
-In v4, Drizzle effect-postgres query builders (`select()`, `insert()`, `delete()`) return `QueryEffect` which extends `Effect.Effect<Result, Error, never>`. However, when yielded via `Symbol.iterator` in `Effect.gen`, the R channel resolves to `unknown` instead of `never`.
-
-**Fix:** Always call `.execute()` explicitly on Drizzle queries:
+In Drizzle v1 RC with `drizzle-orm/effect-postgres`, all query builders implement `Effectable.Prototype` — they are `Yieldable`. When you `yield*` a query, it calls `.execute()` internally.
 
 ```typescript
-// v3 — worked without .execute()
+// Both are equivalent:
 const posts = yield* db.select().from(schema.post).where(...)
-
-// v4 — must add .execute()
 const posts = yield* db.select().from(schema.post).where(...).execute()
 ```
 
-This affects all `yield* db.select()`, `yield* db.insert()`, `yield* db.delete()` patterns.
+**Note:** Earlier v4 betas required explicit `.execute()` due to an `R` channel typing issue. This was fixed in Drizzle `1.0.0-rc.1`.
 
 ---
 
@@ -408,28 +415,28 @@ const value = yield * Ref.get(ref)
 | `package.json`                           | Deps updated, removed `@effect/platform` and `@effect/sql`       |
 | `lib/layers.ts`                          | `.Live` → `.layer`                                               |
 | `lib/next-effect/index.ts`               | `Either` → `Result`, `catchAll` → `catch`, remove `as` assertion |
-| `lib/services/db/live-layer.ts`          | `ServiceMap.Service`, `NodeServices`                             |
-| `lib/services/auth/live-layer.ts`        | `ServiceMap.Service`, Config pattern                             |
-| `lib/services/email/live-layer.ts`       | `ServiceMap.Service`, Config pattern                             |
-| `lib/services/s3/live-layer.ts`          | `ServiceMap.Service`, Config pattern                             |
-| `lib/services/telegram/live-layer.ts`    | `ServiceMap.Service`, Config pattern                             |
-| `lib/services/activity/live-layer.ts`    | `ServiceMap.Service`, `Ref`, `forkDetach`, `catch`               |
+| `lib/services/db/live-layer.ts`          | `Context.Service`, `PgDrizzle.make()`, removed `NodeServices` |
+| `lib/services/auth/live-layer.ts`        | `Context.Service`, Config pattern                             |
+| `lib/services/email/live-layer.ts`       | `Context.Service`, Config pattern                             |
+| `lib/services/s3/live-layer.ts`          | `Context.Service`, Config pattern                             |
+| `lib/services/telegram/live-layer.ts`    | `Context.Service`, Config pattern                             |
+| `lib/services/activity/live-layer.ts`    | `Context.Service`, `Ref`, `forkDetach`, `catch`               |
 | `lib/services/retry.ts`                  | `SqlError` import, `Schedule.both`                               |
 | `lib/schemas/email.ts`                   | Full Schema v4 rewrite                                           |
 | `app/api/example/route.ts`               | HTTP modules, `toWebHandlerLayer`, `catchTag` chain              |
 | `app/api/auth/[...all]/route.ts`         | `Auth.layer`                                                     |
 | `app/page.tsx`                           | `catchTag` chain, extracted `PostList` component                 |
 | `app/(auth)/login/page.tsx`              | `catchTag` chain                                                 |
-| `lib/core/post/create-post-action.ts`    | `catchTag` chain, `.execute()`                                   |
-| `lib/core/post/delete-post-action.ts`    | `catchTag` chain, `.execute()`                                   |
-| `lib/core/post/get-posts.ts`             | `.execute()`                                                     |
+| `lib/core/post/create-post-action.ts`    | `catchTag` chain, removed `.execute()`                           |
+| `lib/core/post/delete-post-action.ts`    | `catchTag` chain, removed `.execute()`                           |
+| `lib/core/post/get-posts.ts`             | removed `.execute()`                                             |
 | `lib/core/file/delete-file-action.ts`    | `catchTag` chain                                                 |
 | `lib/core/file/get-upload-url-action.ts` | `catchTag` chain                                                 |
 | `lib/core/post/error-testing.test.ts`    | `Effect.result`, `Cause.isFailReason`, `findDefect`              |
 | `lib/core/post/get-posts.test.ts`        | `forkChild`, `TestClock` import                                  |
 | `lib/core/post/test-clock.test.ts`       | `forkChild`, `TestClock` import                                  |
-| `lib/core/post/layer-sharing.test.ts`    | `ServiceMap.Service()()` syntax, `Effect.result`                 |
+| `lib/core/post/layer-sharing.test.ts`    | `Context.Service()()` syntax, `Effect.result`                 |
 | `lib/core/post/property-testing.test.ts` | Schema v4, `toArbitrary`, `Result` for partition                 |
 | `e2e/utils/setup.ts`                     | `Db.layer`                                                       |
-| `e2e/utils/create-test-user.ts`          | `.execute()`                                                     |
+| `e2e/utils/create-test-user.ts`          | removed `.execute()`                                             |
 | `e2e/fixtures.ts`                        | `Effect.orDie`                                                   |

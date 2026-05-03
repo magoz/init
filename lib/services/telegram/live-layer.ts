@@ -1,4 +1,4 @@
-import { Config, Effect, Layer, Redacted, ServiceMap } from 'effect'
+import { Config, Context, Effect, Layer, Redacted } from 'effect'
 import { TelegramConfigError, TelegramSendError } from './errors'
 
 const TELEGRAM_MESSAGE_MAX_LENGTH = 4096
@@ -9,7 +9,7 @@ const splitIntoChunks = (str: string, chunkSize: number): string[] => {
 }
 
 // Configuration service (internal)
-class TelegramConfig extends ServiceMap.Service<
+class TelegramConfig extends Context.Service<
   TelegramConfig,
   {
     readonly botToken: Redacted.Redacted<string>
@@ -28,7 +28,7 @@ const TelegramConfigLive = Layer.effect(
 )
 
 // Service definition
-export class Telegram extends ServiceMap.Service<Telegram>()('@app/Telegram', {
+export class Telegram extends Context.Service<Telegram>()('@app/Telegram', {
   make: Effect.gen(function* () {
     const config = yield* TelegramConfig
 

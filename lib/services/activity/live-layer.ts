@@ -1,4 +1,4 @@
-import { Effect, Layer, Ref, ServiceMap } from 'effect'
+import { Context, Effect, Layer, Ref } from 'effect'
 import { Telegram } from '../telegram/live-layer'
 
 export type Log = {
@@ -41,7 +41,7 @@ const getDuration = (logs: Log[]) =>
     : 0
 
 // Service definition
-export class Activity extends ServiceMap.Service<Activity>()('@app/Activity', {
+export class Activity extends Context.Service<Activity>()('@app/Activity', {
   make: Effect.gen(function* () {
     const telegram = yield* Telegram
     const logsRef = yield* Ref.make<Log[]>([])

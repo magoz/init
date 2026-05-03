@@ -38,10 +38,10 @@ lib/services/
 
 ```typescript
 // live-layer.ts - everything related to the service in one file
-import { Effect, Layer, Config, ServiceMap } from 'effect'
+import { Context, Effect, Layer, Config } from 'effect'
 import { AuthError } from './errors'
 
-export class Auth extends ServiceMap.Service<Auth>()('@app/Auth', {
+export class Auth extends Context.Service<Auth>()('@app/Auth', {
   make: Effect.gen(function* () {
     // ...
   })

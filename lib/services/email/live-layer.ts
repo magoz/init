@@ -4,13 +4,13 @@ import type {
   CreateEmailResponseSuccess
 } from 'resend'
 import { Resend as ResendClient } from 'resend'
-import { Config, Effect, Layer, Redacted, ServiceMap } from 'effect'
+import { Config, Context, Effect, Layer, Redacted } from 'effect'
 import { EmailConfigError, SendEmailError } from './errors'
 
 export { EmailConfigError, SendEmailError }
 
 // Configuration service (internal)
-class EmailConfig extends ServiceMap.Service<
+class EmailConfig extends Context.Service<
   EmailConfig,
   {
     readonly apiKey: Redacted.Redacted<string>
@@ -26,7 +26,7 @@ const EmailConfigLive = Layer.effect(
 )
 
 // Service definition
-export class Email extends ServiceMap.Service<Email>()('@app/Email', {
+export class Email extends Context.Service<Email>()('@app/Email', {
   make: Effect.gen(function* () {
     const config = yield* EmailConfig
     const resendClient = new ResendClient(Redacted.value(config.apiKey))

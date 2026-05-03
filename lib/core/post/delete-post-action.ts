@@ -27,7 +27,6 @@ export const deletePostAction = async (postId: schema.Post['id']) => {
         .from(schema.post)
         .where(eq(schema.post.id, postId))
         .limit(1)
-        .execute()
 
       if (!existing) {
         return yield* new NotFoundError({
@@ -43,7 +42,7 @@ export const deletePostAction = async (postId: schema.Post['id']) => {
         })
       }
 
-      yield* db.delete(schema.post).where(eq(schema.post.id, postId)).execute()
+      yield* db.delete(schema.post).where(eq(schema.post.id, postId))
     }).pipe(
       Effect.withSpan('action.post.delete', {
         attributes: {
