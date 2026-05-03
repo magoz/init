@@ -69,7 +69,9 @@ See `patterns/EFFECT_BEST_PRACTICES.md` for detailed explanations and alternativ
 | Symbol                  | Type     | Location                               | Role                                       |
 | ----------------------- | -------- | -------------------------------------- | ------------------------------------------ |
 | `AppLayer`              | Layer    | `lib/layers.ts`                        | Merged service layer for Effect pipelines  |
-| `NextEffect.runPromise` | Function | `lib/next-effect/index.ts`             | Handles redirects outside Effect context   |
+| `NextEffect.runPromise` | Function | `lib/next-effect/index.ts`             | Handles redirects + notFound outside Effect context |
+| `NextEffect.redirect`   | Function | `lib/next-effect/index.ts`             | Redirect intent (use inside Effect pipelines)       |
+| `NextEffect.notFound`   | Function | `lib/next-effect/index.ts`             | NotFound intent (use inside Effect pipelines)       |
 | `Auth`                  | Service  | `lib/services/auth/live-layer.ts`      | Authentication (sign in/up/out, sessions)  |
 | `Db`                    | Service  | `lib/services/db/live-layer.ts`        | Database (returns Drizzle client)          |
 | `Email`                 | Service  | `lib/services/email/live-layer.ts`     | Resend email sending                       |
@@ -97,7 +99,6 @@ See `patterns/EFFECT_BEST_PRACTICES.md` for detailed explanations and alternativ
 | Nested Suspense with async components           | Single Content component fetches all data             |
 | Missing `export const dynamic`                  | Add `export const dynamic = 'force-dynamic'` for auth |
 | `matchEffect` for error handling                | `catchTag` chains + `Effect.catch` catch-all          |
-| `yield* db.select().from(...)` no `.execute()`  | Not needed — Drizzle queries are `Yieldable`, `yield*` calls `.execute()` internally |
 | `Config.string('X').pipe(Effect.mapError(...))` | Yield Config directly, map errors on whole block      |
 | `ServiceMap.Service<Self>()(id, { make })`      | `Context.Service<Self>()(id, { make })` — `ServiceMap` renamed to `Context` in Effect v4 |
 | `Logger.pretty`                                 | `Logger.layer([Logger.consolePretty()])` — `Logger.pretty` removed in v4 |

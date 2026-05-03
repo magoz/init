@@ -180,7 +180,7 @@ const methodName = (arg: string) =>
 Services are composed in `lib/layers.ts`:
 
 ```typescript
-import { Layer } from 'effect'
+import { Layer, Logger } from 'effect'
 import { Auth } from './services/auth/live-layer'
 import { Db } from './services/db/live-layer'
 
@@ -189,11 +189,14 @@ export const AppLayer = Layer.mergeAll(
   Auth.layer,
   Db.layer,
   S3.layer,
+  Logger.layer([Logger.consolePretty()]),
   Telegram.layer,
   Activity.layer,
   TelemetryLayer
 )
 ```
+
+**Note:** `Logger.consolePretty()` is required for `Effect.logError` / `Effect.logWarning` to produce output. Without it, logs are silent.
 
 ### Layer Composition Functions
 
