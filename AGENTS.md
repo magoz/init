@@ -101,7 +101,6 @@ See `patterns/EFFECT_BEST_PRACTICES.md` for detailed explanations and alternativ
 | Nested Suspense with async components           | Single Content component fetches all data             |
 | Missing `export const dynamic`                  | Add `export const dynamic = 'force-dynamic'` for auth |
 | `matchEffect` for error handling                | `catchTag` chains + `Effect.catch` catch-all          |
-| `Effect.andThen(Effect.succeed(value))`         | `Effect.as(value)` — idiomatic "ignore result, return constant" |
 | `Config.string('X').pipe(Effect.mapError(...))` | Yield Config directly, map errors on whole block      |
 | `ServiceMap.Service<Self>()(id, { make })`      | `Context.Service<Self>()(id, { make })` — `ServiceMap` renamed to `Context` in Effect v4 |
 | `Logger.pretty`                                 | `Logger.layer([Logger.consolePretty()])` — `Logger.pretty` removed in v4 |
