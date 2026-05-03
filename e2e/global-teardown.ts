@@ -1,12 +1,9 @@
-import { config } from 'dotenv'
+import '../lib/dotenv'
 import { Effect } from 'effect'
 import { sql } from 'drizzle-orm'
 import { getTableConfig } from 'drizzle-orm/pg-core'
 import { Db } from '@/lib/services/db/live-layer'
 import * as schema from '@/lib/services/db/schema'
-
-// Load .env.test before any DB operations
-config({ path: '.env.test' })
 
 // All tables from the schema — order doesn't matter (TRUNCATE CASCADE)
 const tables = [schema.user, schema.post, schema.session, schema.account, schema.verification]

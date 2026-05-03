@@ -1,7 +1,5 @@
-import { config } from 'dotenv'
+import './lib/dotenv'
 import { defineConfig, devices } from '@playwright/test'
-
-config({ path: '.env.test' })
 
 const PORT = process.env.PORT || 3000
 const baseURL = `http://localhost:${PORT}`

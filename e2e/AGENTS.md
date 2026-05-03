@@ -106,6 +106,12 @@ e2e/
     login.spec.ts                 — Login flow UI tests
 ```
 
+## Env Isolation
+
+E2E tests load **only** `.env.test`. All env loading is centralized in `lib/dotenv.ts` — when `NODE_ENV=test` it loads `.env.test` exclusively; otherwise `.env.local` + `.env`.
+
+**Never add a direct `dotenv.config()` call** — always `import '@/lib/dotenv'` (or `import '../lib/dotenv'` from root config files). This is the single source of truth.
+
 ## How It Works
 
 1. `playwright.config.ts` loads `.env.test`, starts Next.js via `webServer`

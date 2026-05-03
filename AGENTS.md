@@ -110,6 +110,7 @@ See `patterns/EFFECT_BEST_PRACTICES.md` for detailed explanations and alternativ
 | `Either.isRight(r)` / `r.right`                | `Result.isSuccess(r)` / `r.success` — `Either` renamed to `Result` in v4 |
 | `Effect.catchAll(handler)`                      | `Effect.catch(handler)` — v4 rename |
 | `FiberRef.unsafeMake` / `FiberRef.get`          | `Context.Reference` + `References.*` — `FiberRef` removed in v4 |
+| `dotenv.config({ path: '.env.local' })` in a module | `import '@/lib/dotenv'` — centralized, respects `NODE_ENV=test` → `.env.test` |
 
 ## NOTES
 

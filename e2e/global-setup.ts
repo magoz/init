@@ -1,4 +1,4 @@
-import { config } from 'dotenv'
+import '../lib/dotenv'
 import { Effect } from 'effect'
 import { neon } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-http'
@@ -8,9 +8,6 @@ import * as schema from '@/lib/services/db/schema'
 import { Db } from '@/lib/services/db/live-layer'
 import { createTestAuthSession } from './utils/create-test-auth-session'
 import { TEST_USER_ID } from './test-ids'
-
-// Load .env.test before any DB operations
-config({ path: '.env.test' })
 
 /**
  * Global setup runs once before all Playwright tests.
