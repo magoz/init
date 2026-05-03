@@ -27,7 +27,7 @@ page.getByRole('button', { name: 'Create Post' })
 page.getByRole('link', { name: 'Settings' })
 page.getByRole('heading', { name: 'Dashboard' })
 
-// 2. getByLabel — best for form controls
+// 2. getByLabel — best for form controls (works with <label> and aria-label)
 page.getByLabel('Title')
 page.getByLabel('Email')
 
@@ -43,6 +43,9 @@ Use `.filter({ hasText })` or `.filter({ has })` to uniquely identify elements. 
 ```ts
 // good — filter by unique content
 const row = page.getByRole('row').filter({ hasText: 'My Post' })
+
+// acceptable — when same text genuinely appears in multiple sections
+page.getByRole('link', { name: /My Post/ }).first()
 
 // bad — positional, fragile
 page.getByRole('row').nth(2)
@@ -83,6 +86,28 @@ await expect(page.getByText('Published')).toBeVisible({ timeout: 10_000 })
 ### Test isolation
 
 Each test must be completely independent. No test should depend on another test's side effects. Tests across files run in **parallel** (separate workers). Tests within a `describe` block with `{ mode: 'serial' }` share a worker.
+
+#### User-level state needs a dedicated user
+
+**NEVER mutate user-level state** (role, etc.) **on `TEST_USER_ID`**. Other files running in parallel share this user. If a test needs to change user-level state, create a **dedicated user** in `beforeAll`:
+
+```ts
+const MY_USER_ID = 'e2e-my-feature-user-001'
+
+test.beforeAll(async () => {
+  await Effect.gen(function* () {
+    // ... create user + session
+  }).pipe(Effect.provide(Db.layer), Effect.scoped, Effect.runPromise)
+})
+```
+
+#### Domain data uses unique names
+
+`TEST_USER_ID` is fine for domain data (posts, etc.) as long as each file uses **unique names/IDs** for seeded data. This prevents text collisions across parallel files.
+
+#### One record per mutating test
+
+For tests that modify data (delete, update), seed a **separate record per test** with a distinct name.
 
 ## Architecture
 
@@ -179,6 +204,17 @@ await expect(page.getByLabel('Title')).toHaveCount(1, { timeout: 15_000 })
 await page.getByLabel('Title').fill('New Title')
 ```
 
+Every form input needs an accessible name. `getByLabel` (priority 2) is preferred over `getByPlaceholder` (priority 3) — good for both a11y and test stability.
+
+**Labeling hierarchy** (W3C WAI, pick the highest that fits):
+
+1. **`<label htmlFor>`** — visible, clickable, programmatically associated. Gold standard.
+2. **`aria-labelledby`** — references a visible element by `id`. Prefer when the visual label already exists but `<label>` doesn't fit.
+3. **`aria-label`** — invisible to sighted users. Use when control's purpose is clear from visual context alone.
+4. **`placeholder` alone** — never sufficient for accessibility. Always add one of the above.
+
+Playwright's `getByLabel` matches both `<label>` and `aria-label`, so all three approaches give stable test locators. When adding a new input, add the label in the same PR.
+
 ### Redirect inside Suspense boundary
 
 Next.js streaming sends the Suspense fallback first. `NextEffect.redirect()` inside a Content component streams as a client-side redirect AFTER `page.goto()` resolves. Use a race pattern:
@@ -226,9 +262,11 @@ await expect.soft(page.getByText('Settings')).toBeVisible()
 1. Create `e2e/ui/my-feature.spec.ts` or `e2e/api/my-route.spec.ts`
 2. Import `{ test, expect }` from `../fixtures` (authenticated) or `@playwright/test` (public)
 3. Add `test.describe.configure({ mode: 'serial' })` if using `beforeAll`
-4. **Start `beforeAll` with cleanup** for deterministic IDs — retries re-run `beforeAll`
+4. **Start `beforeAll` with cleanup** for all deterministic IDs — retries re-run `beforeAll`
 5. Use unique names/IDs per spec to avoid collisions with parallel workers
-6. For streamed pages, add `toHaveCount(1)` guards before interacting
+6. Add any new deterministic IDs to `test-ids.ts` — **ensure no ID is a substring of another**
+7. Use `{ name: '...', exact: true }` on filter/toggle buttons to avoid substring matches
+8. For streamed pages, add `toHaveCount(1)` guards before interacting
 
 ## Gotchas
 
@@ -239,3 +277,8 @@ await expect.soft(page.getByText('Settings')).toBeVisible()
 - **`waitForURL` glob vs function predicate** — `waitForURL('**/login**')` waits for `load` event. Use function predicate `waitForURL(url => url.toString().includes('/login'))` — resolves on navigation match, not just `load`.
 - **Streaming ghost clicks** — clicking a button during hydration can target a DOM element about to be detached. The click appears to succeed but has no effect. Fix: `toHaveCount(1)` before clicking.
 - **Port conflicts** — Use a dedicated port (e.g. 3007) in playwright.config.ts to avoid conflicts with dev server on 3000.
+- **`getByRole('heading')` matches multiple levels** — use `{ level: 1 }` or `{ name: '...' }` to disambiguate h1 from h2.
+- **`process.env` propagation** — `globalSetup` shares env vars with workers. Deterministic IDs in `test-ids.ts` are more reliable than env vars.
+- **Test IDs must not be substrings of each other** — e.g. `e2e-project-foo` is a prefix of `e2e-project-foobar`, breaking `url.includes()` checks. Use distinct stems.
+- **Full suite flaky under cold start** — parallel workers hitting a cold Next.js dev server can cause timeouts. Config `retries: 1` local, `retries: 2` CI.
+- **Filter buttons with similar names** — `/saved/i` regex matches both "Saved" and "Unsaved". Use `{ name: 'Saved', exact: true }`.
