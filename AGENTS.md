@@ -127,3 +127,4 @@ See `patterns/EFFECT_BEST_PRACTICES.md` for detailed explanations and alternativ
 - `patterns/README.md` - Architecture and convention patterns index
 - `lib/services/AGENTS.md` - Effect-TS service architecture, config, observability patterns
 - `components/ui/AGENTS.md` - UI component install sources and customizations
+- `e2e/AGENTS.md` - E2E test patterns, locator priority, streaming guards, auth cookies

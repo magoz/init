@@ -1,0 +1,226 @@
+# E2E Tests
+
+Playwright tests with Effect-based global setup. Uses `.env.test` with a separate test database. No mocking — all tests run against real services.
+
+## Playwright Best Practices
+
+From the [official Playwright best practices](https://playwright.dev/docs/best-practices) and [locators guide](https://playwright.dev/docs/locators).
+
+### Test user-visible behavior
+
+Test what users see and do, not implementation details. Never assert on CSS classes, internal state, or DOM structure that users don't interact with.
+
+### Locator priority (strict)
+
+| Priority  | Locator              | When to use                                                                                    |
+| --------- | -------------------- | ---------------------------------------------------------------------------------------------- |
+| 1         | `getByRole`          | Buttons, links, headings, rows, menuitems, checkboxes. Always pass `{ name }` for specificity. |
+| 2         | `getByLabel`         | Form controls with `<label>` or `aria-label` (inputs, textareas, comboboxes, switches).        |
+| 3         | `getByPlaceholder`   | Form elements without labels. Prefer adding `<label>` or `aria-label` so `getByLabel` works.   |
+| 4         | `getByText`          | Non-interactive elements only (div, span, p). **Never** for buttons/links/inputs.              |
+| 5         | `getByTestId`        | Last resort when no user-facing attribute works.                                               |
+| **NEVER** | `page.locator()` CSS | Tied to DOM structure, breaks on redesigns.                                                    |
+
+```ts
+// 1. getByRole — best for interactive elements
+page.getByRole('button', { name: 'Create Post' })
+page.getByRole('link', { name: 'Settings' })
+page.getByRole('heading', { name: 'Dashboard' })
+
+// 2. getByLabel — best for form controls
+page.getByLabel('Title')
+page.getByLabel('Email')
+
+// BAD — never use these
+page.locator('.font-semibold')
+page.locator('[data-slot="input"]')
+```
+
+### Narrow scope with chaining and filtering (not `.first()`/`.nth()`)
+
+Use `.filter({ hasText })` or `.filter({ has })` to uniquely identify elements. Avoid `.first()`/`.nth()`/`.last()` — they break when page content changes.
+
+```ts
+// good — filter by unique content
+const row = page.getByRole('row').filter({ hasText: 'My Post' })
+
+// bad — positional, fragile
+page.getByRole('row').nth(2)
+```
+
+When two elements share the same locator and filtering can't distinguish them, **fix the app** by adding a unique `aria-label` rather than using positional selectors.
+
+### Web-first assertions (always `await expect`)
+
+Playwright auto-waits for conditions to be met. Never use manual checks.
+
+```ts
+// good — auto-waits for condition
+await expect(page.getByText('Posts')).toBeVisible()
+
+// bad — no auto-wait, flaky
+expect(await page.getByText('Posts').isVisible()).toBe(true)
+
+// bad — hardcoded waits
+await page.waitForTimeout(2000)
+await page.reload()
+```
+
+### Never use `waitForTimeout`
+
+Replace `waitForTimeout` + `reload` with web-first assertions that auto-retry:
+
+```ts
+// bad
+await page.waitForTimeout(1000)
+await page.reload()
+await expect(page.getByText('Published')).toBeVisible()
+
+// good — auto-waits for the DOM to update
+await expect(page.getByText('Published')).toBeVisible({ timeout: 10_000 })
+```
+
+### Test isolation
+
+Each test must be completely independent. No test should depend on another test's side effects. Tests across files run in **parallel** (separate workers). Tests within a `describe` block with `{ mode: 'serial' }` share a worker.
+
+## Architecture
+
+```
+playwright.config.ts              — dotenv, chromium, global setup, webServer
+e2e/
+  global-setup.ts                 — drizzle-seed reset (truncate + reseed)
+  fixtures.ts                     — worker fixture (testData), test fixture (apiContext)
+  utils/
+    setup.ts                      — Effect.gen: creates test user, provides Db.layer
+    create-test-user.ts           — inserts user with random email
+    ensure-test-environment.ts    — guards against running outside NODE_ENV=test
+  api/
+    example.spec.ts               — API endpoint tests
+  ui/
+    login.spec.ts                 — Login flow UI tests
+```
+
+## How It Works
+
+1. `playwright.config.ts` loads `.env.test`, starts Next.js via `webServer`
+2. `global-setup.ts` resets the database via `drizzle-seed` (truncate + reseed)
+3. Worker fixture (`testData`) creates a test user via `createTestSetup` (Effect + Db.layer)
+4. Each test gets a fresh `apiContext` from the test fixture
+5. UI tests use base Playwright `test` (no fixtures — tests public pages)
+
+## Key Patterns
+
+### Auth cookie signing (better-auth)
+
+better-auth uses HMAC-SHA256 with **standard base64** (NOT base64url), then URL-encoded:
+
+```ts
+import { createHmac } from 'crypto'
+
+const signature = createHmac('sha256', secret).update(value).digest('base64')
+return encodeURIComponent(`${value}.${signature}`)
+```
+
+Cookie name: `better-auth.session_token`, domain: `localhost`, secure: `false`.
+
+### Per-file data seeding
+
+Each spec file that needs specific data should create it in `test.beforeAll`:
+
+```ts
+test.describe('My feature', () => {
+  test.describe.configure({ mode: 'serial' })
+
+  test.beforeAll(async () => {
+    await Effect.gen(function* () {
+      const db = yield* Db
+      // Cleanup first (retries re-run beforeAll)
+      yield* db.delete(schema.post).where(eq(schema.post.id, MY_POST_ID))
+      // Then seed
+      yield* db.insert(schema.post).values({ id: MY_POST_ID, ... })
+    }).pipe(Effect.provide(Db.layer), Effect.scoped, Effect.runPromise)
+  })
+})
+```
+
+### Serial mode for shared seeded data
+
+When multiple tests share seeded data, use serial mode to prevent `beforeAll` running in multiple workers:
+
+```ts
+test.describe.configure({ mode: 'serial' })
+```
+
+### Streaming duplicate guard (`toHaveCount(1)`)
+
+Suspense hydration can briefly duplicate DOM elements. Interacting with a ghost element causes silent failures. Before interacting with elements on streamed pages:
+
+```ts
+// Wait for streaming to settle
+await expect(page.getByLabel('Title')).toHaveCount(1, { timeout: 15_000 })
+
+// Now safe to interact
+await page.getByLabel('Title').fill('New Title')
+```
+
+### Redirect inside Suspense boundary
+
+Next.js streaming sends the Suspense fallback first. `NextEffect.redirect()` inside a Content component streams as a client-side redirect AFTER `page.goto()` resolves. Use a race pattern:
+
+```ts
+const redirected = page
+  .waitForURL(url => url.toString().includes('/login'), { timeout: 15_000 })
+  .then(() => true)
+const contentLoaded = page
+  .getByRole('heading', { name: 'Dashboard' })
+  .waitFor({ timeout: 15_000 })
+  .then(() => false)
+
+const wasRedirected = await Promise.race([redirected, contentLoaded])
+expect(wasRedirected).toBe(true)
+```
+
+### Multi-user tests
+
+Create per-user sessions and build `BrowserContext` per test:
+
+```ts
+import { createAuthedContext } from '../utils/create-authed-context'
+
+test('member cannot delete', async ({ browser }) => {
+  const context = await createAuthedContext(browser, memberToken)
+  const page = await context.newPage()
+  // ... assertions ...
+  await page.close()
+  await context.close()
+})
+```
+
+### Soft assertions for multi-check tests
+
+Use `expect.soft()` when verifying multiple things:
+
+```ts
+await expect.soft(page.getByText('Posts')).toBeVisible()
+await expect.soft(page.getByText('Settings')).toBeVisible()
+```
+
+## Adding a New Spec
+
+1. Create `e2e/ui/my-feature.spec.ts` or `e2e/api/my-route.spec.ts`
+2. Import `{ test, expect }` from `../fixtures` (authenticated) or `@playwright/test` (public)
+3. Add `test.describe.configure({ mode: 'serial' })` if using `beforeAll`
+4. **Start `beforeAll` with cleanup** for deterministic IDs — retries re-run `beforeAll`
+5. Use unique names/IDs per spec to avoid collisions with parallel workers
+6. For streamed pages, add `toHaveCount(1)` guards before interacting
+
+## Gotchas
+
+- **ESLint false-flags Playwright's `use` callback** — `react-hooks/rules-of-hooks` thinks it's a React hook. `fixtures.ts` has `/* eslint-disable */`.
+- **`fullyParallel: true` splits describe blocks across workers** — `beforeAll` runs once per worker, not once per describe. Use `test.describe.configure({ mode: 'serial' })` when `beforeAll` creates data with deterministic IDs.
+- **Streaming sections need timeouts** — Suspense sections load independently. Each assertion needs `{ timeout: 10_000 }` or similar.
+- **Serial `beforeAll` re-runs on retry** — Playwright retries re-run `beforeAll`, causing unique constraint errors. Delete before re-creating at the top of `beforeAll`.
+- **`waitForURL` glob vs function predicate** — `waitForURL('**/login**')` waits for `load` event. Use function predicate `waitForURL(url => url.toString().includes('/login'))` — resolves on navigation match, not just `load`.
+- **Streaming ghost clicks** — clicking a button during hydration can target a DOM element about to be detached. The click appears to succeed but has no effect. Fix: `toHaveCount(1)` before clicking.
+- **Port conflicts** — Use a dedicated port (e.g. 3007) in playwright.config.ts to avoid conflicts with dev server on 3000.
