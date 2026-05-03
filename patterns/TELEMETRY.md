@@ -213,3 +213,67 @@ Both are already in `AppLayer` (`lib/layers.ts`).
 - Never use `Sentry.captureException` directly — use `reportError`
 - Span name matches `operation` context key in `reportError`
 - `annotateCurrentSpan` for IDs and context, not for large payloads
+
+## Span Conventions
+
+Span names use `domain.entity.action` format. Server actions prefix with `action.`:
+
+| Span | Where |
+| --- | --- |
+| `post.get` | Domain function |
+| `post.create` | Domain function |
+| `action.post.create` | Server action |
+| `action.post.delete` | Server action |
+| `Auth.signIn` | Service method |
+| `Auth.getSessionFromCookies` | Service method |
+| `S3.saveFile` | Service method |
+| `Email.sendEmail` | Service method |
+| `Telegram.send` | Service method |
+
+Custom attributes per span:
+
+| Span | Attributes |
+| --- | --- |
+| `action.post.*` | `post.id`, `user.id`, `user.email` |
+| `Auth.*` | (none — session data is the result) |
+| `S3.*` | `s3.bucket`, `s3.key`, `s3.size` |
+| `Email.sendEmail` | `email.to`, `email.subject`, `email.id` |
+| `Telegram.send` | `telegram.messageLength`, `telegram.chatId` |
+
+## Axiom Dashboards
+
+Spans ship to Axiom via OpenTelemetry. Dashboards visualize them.
+
+### API
+
+Auth: personal access token + `X-Axiom-Org-Id` header.
+
+```bash
+# List dashboards
+curl -H "Authorization: Bearer $AXIOM_TOKEN" \
+     -H "X-Axiom-Org-Id: $AXIOM_ORG_ID" \
+     "https://api.axiom.co/v2/dashboards"
+
+# Create dashboard
+curl -X POST \
+     -H "Authorization: Bearer $AXIOM_TOKEN" \
+     -H "X-Axiom-Org-Id: $AXIOM_ORG_ID" \
+     -H "Content-Type: application/json" \
+     "https://api.axiom.co/v2/dashboards" \
+     -d '{"dashboard": { ...full dashboard object... }}'
+
+# Update dashboard by UID (upsert)
+curl -X PUT \
+     -H "Authorization: Bearer $AXIOM_TOKEN" \
+     -H "X-Axiom-Org-Id: $AXIOM_ORG_ID" \
+     -H "Content-Type: application/json" \
+     "https://api.axiom.co/v2/dashboards/uid/{uid}" \
+     -d '{"overwrite": true, "dashboard": { ...full dashboard object... }}'
+```
+
+Key details:
+
+- **Update endpoint is `/v2/dashboards/uid/{uid}`** (not `/v2/dashboards/{id}`) — requires the `uid` path segment
+- `overwrite: true` bypasses version conflicts
+- `owner: "X-AXIOM-EVERYONE"` makes dashboard visible to all org members
+- Dashboard `uid` is in the URL: `app.axiom.co/{org}/dashboards/uid/{uid}`
