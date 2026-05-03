@@ -22,6 +22,12 @@ Architecture and convention patterns for this codebase.
 | --- | --- |
 | [NUQS_URL_STATE.md](./NUQS_URL_STATE.md) | nuqs import rules, search-params.ts pattern, pagination |
 
+## Observability
+
+| Pattern | Purpose |
+| --- | --- |
+| [TELEMETRY.md](./TELEMETRY.md) | Spans, error/warning reporting, retry ordering |
+
 ## Code Quality
 
 | Pattern | Purpose |
