@@ -87,14 +87,19 @@ Each test must be completely independent. No test should depend on another test'
 ## Architecture
 
 ```
-playwright.config.ts              — dotenv, chromium, global setup, webServer
+playwright.config.ts              — dotenv, chromium, global setup/teardown, webServer
 e2e/
-  global-setup.ts                 — drizzle-seed reset (truncate + reseed)
-  fixtures.ts                     — worker fixture (testData), test fixture (apiContext)
+  global-setup.ts                 — reset DB + seed user + create auth session
+  global-teardown.ts              — TRUNCATE CASCADE cleanup
+  test-ids.ts                     — deterministic IDs shared between setup and specs
+  fixtures.ts                     — authedContext + authedPage (session cookie injection)
   utils/
-    setup.ts                      — Effect.gen: creates test user, provides Db.layer
+    create-test-auth-session.ts   — session row + HMAC-SHA256 signed cookie
+    create-authed-context.ts      — BrowserContext with session cookie for multi-user tests
+    ensure-test-env.ts            — Effect.die guard for NODE_ENV=test
     create-test-user.ts           — inserts user with random email
-    ensure-test-environment.ts    — guards against running outside NODE_ENV=test
+    setup.ts                      — legacy setup helper
+    ensure-test-environment.ts    — legacy plain JS guard
   api/
     example.spec.ts               — API endpoint tests
   ui/
@@ -104,10 +109,14 @@ e2e/
 ## How It Works
 
 1. `playwright.config.ts` loads `.env.test`, starts Next.js via `webServer`
-2. `global-setup.ts` resets the database via `drizzle-seed` (truncate + reseed)
-3. Worker fixture (`testData`) creates a test user via `createTestSetup` (Effect + Db.layer)
-4. Each test gets a fresh `apiContext` from the test fixture
-5. UI tests use base Playwright `test` (no fixtures — tests public pages)
+2. `global-setup.ts` runs:
+   - Resets database via `drizzle-seed` (truncate + reseed)
+   - Creates test user with deterministic ID from `test-ids.ts`
+   - Creates better-auth session with HMAC-SHA256 signed cookie
+   - Shares signed session token via `process.env.TEST_SESSION_TOKEN`
+3. `fixtures.ts` provides `authedContext` (BrowserContext with session cookie) and `authedPage`
+4. Each test gets an authenticated page ready to navigate
+5. `global-teardown.ts` runs TRUNCATE CASCADE after all tests
 
 ## Key Patterns
 

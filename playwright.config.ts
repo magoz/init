@@ -8,6 +8,7 @@ const baseURL = `http://localhost:${PORT}`
 
 export default defineConfig({
   globalSetup: './e2e/global-setup.ts',
+  globalTeardown: './e2e/global-teardown.ts',
 
   webServer: {
     command: 'NODE_ENV=test pnpm next dev',
